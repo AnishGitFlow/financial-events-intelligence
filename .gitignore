@@ -1,0 +1,8 @@
+.env
+__pycache__/
+*.pyc
+*.pyo
+# data/history.json (Persisted by GitHub Actions)
+data/reports/
+*.log
+.DS_Store
