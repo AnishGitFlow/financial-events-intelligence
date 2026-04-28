@@ -5,7 +5,7 @@ on:
     # Runs every day at 08:00 AM IST
     # IST = UTC +5:30
     # 08:00 IST = 02:30 UTC
-    - cron: '*/15 * * * *'
+    - cron: '30 2 * * *'
 
   workflow_dispatch:
 
