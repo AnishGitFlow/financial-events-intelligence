@@ -2,8 +2,8 @@ name: Daily Financial Events Monitor
 
 on:
   schedule:
-    # Runs every day at 6:00 AM IST
-    - cron: '30 12 * * *'
+    # Runs every day at 8:00 AM IST
+    - cron: '30 2 * * *'
 
   workflow_dispatch:
 
