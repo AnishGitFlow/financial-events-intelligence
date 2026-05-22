@@ -1237,8 +1237,8 @@
       "seen_at": "2026-05-21T06:36:01.581792+00:00"
     },
     "asset management conference|not specified": {
-      "completeness": 5.34,
-      "seen_at": "2026-05-21T06:36:01.581792+00:00"
+      "completeness": 7.0,
+      "seen_at": "2026-05-22T06:33:19.891161+00:00"
     },
     "this important conversation|2026-06-25": {
       "completeness": 8.0,
@@ -1247,6 +1247,26 @@
     "strengthening global collaboration for the future of cross-border remittances.|2026-05-21": {
       "completeness": 8.0,
       "seen_at": "2026-05-21T06:36:01.581792+00:00"
+    },
+    "capital markets summit|not specified": {
+      "completeness": 10.0,
+      "seen_at": "2026-05-22T06:33:19.891161+00:00"
+    },
+    "and kind of validated by findings from industry surveys ran by mckinsey.|not specified": {
+      "completeness": 6.82,
+      "seen_at": "2026-05-22T06:33:19.891161+00:00"
+    },
+    "taxand global conference|2026-05-29": {
+      "completeness": 8.0,
+      "seen_at": "2026-05-22T06:33:19.891161+00:00"
+    },
+    "compliance india summit|not specified": {
+      "completeness": 7.0,
+      "seen_at": "2026-05-22T06:33:19.891161+00:00"
+    },
+    "productlab conference|2026-09-15": {
+      "completeness": 8.0,
+      "seen_at": "2026-05-22T06:33:19.891161+00:00"
     }
   }
 }
