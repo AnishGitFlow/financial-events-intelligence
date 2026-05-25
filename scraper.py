@@ -1,33 +1,37 @@
 """
-scraper.py - Fetches LinkedIn posts via Serper API (Google Search).
+scraper.py - Fetches financial event signals via Serper API.
 
-Flow:
-  1. Rotate through SEARCH_QUERIES (DAILY_QUERY_LIMIT queries per run)
-  2. For each query → call Serper API with site:linkedin.com/posts filter
-  3. Parse organic results → best-effort og:meta scrape for richer content
-  4. Hard filters: exclusion keywords, low-quality, India context (cheap string checks)
-  5. Semantic filter: cosine similarity against TARGET_CONCEPTS (replaces keyword scoring)
-  6. Attach semantic score to each passing post for downstream ranking
+Pipeline:
+  Serper search -> source inference -> hard filters -> normalized result.
 """
 import hashlib
 import re
+from collections import Counter
+from datetime import datetime, timedelta, timezone
+from urllib.parse import urlparse
+
 import requests
 from bs4 import BeautifulSoup
-from datetime import datetime, timedelta, timezone
 
 from config import (
     SERPER_API_KEY,
-    SEARCH_QUERIES,
+    SERPER_RECENCY,
+    SERPER_TBS_BY_RECENCY,
+    SEARCH_SOURCE_QUERIES,
     DAILY_QUERY_LIMIT,
-    SENIOR_TITLES,
-    INDIA_HARD_SIGNALS,
+    FINANCE_DOMAIN_SIGNALS,
     EVENT_HARD_SIGNALS,
-    HIGH_PRIORITY_SOURCES,
-    MEDIUM_PRIORITY_SOURCES,
+    INDIA_LOCATION_SIGNALS,
+    NEGATIVE_SIGNALS,
     EXCLUDE_KEYWORDS,
-    SEMANTIC_THRESHOLD,
+    SOURCE_TYPE_LABELS,
+    REGISTRATION_DOMAINS,
+    COMMUNITY_EVENT_DOMAINS,
+    INDUSTRY_BODY_DOMAINS,
+    MEDIA_PR_DOMAINS,
+    COMPANY_DOMAINS,
+    INDIA_FOCUSED_DOMAINS,
 )
-from semantic_filter import is_relevant
 
 SERPER_URL = "https://google.serper.dev/search"
 
@@ -40,39 +44,51 @@ SCRAPE_HEADERS = {
     "Accept-Language": "en-US,en;q=0.9",
 }
 
+PRIMARY_SOURCE_ORDER = {
+    "official_event_pages": 0,
+    "registration_pages": 1,
+    "industry_bodies": 2,
+    "company_pages": 3,
+    "linkedin_posts": 4,
+    "media_pr": 5,
+    "community_events": 6,
+    "open_web_discovery": 7,
+}
 
-# ── Hard filter helpers (cheap — run before semantic engine) ──────────────────────
 
-def is_excluded(text: str) -> bool:
-    """Drop posts matching any exclusion keyword."""
+def _contains_any(text: str, signals: list[str]) -> list[str]:
     lower = text.lower()
-    return any(kw in lower for kw in EXCLUDE_KEYWORDS)
+    return [signal for signal in signals if signal in lower]
 
 
-def is_low_quality(text: str) -> bool:
-    """Drop posts that are too short or are hashtag spam."""
+def get_finance_matches(text: str) -> list[str]:
+    return _contains_any(text, FINANCE_DOMAIN_SIGNALS)
+
+
+def get_event_matches(text: str) -> list[str]:
+    return _contains_any(text, EVENT_HARD_SIGNALS)
+
+
+def get_location_matches(text: str) -> list[str]:
+    return _contains_any(text, INDIA_LOCATION_SIGNALS)
+
+
+def get_negative_matches(text: str) -> list[str]:
+    return _contains_any(text, NEGATIVE_SIGNALS)
+
+
+def get_excluded_matches(text: str) -> list[str]:
+    return _contains_any(text, EXCLUDE_KEYWORDS)
+
+
+def is_low_quality(text: str, source_type: str) -> bool:
     words = text.split()
-    if len(words) < 15:
+    min_words = 8 if source_type != "linkedin_posts" else 15
+    if len(words) < min_words:
         return True
     hashtag_ratio = text.count("#") / max(len(words), 1)
-    if hashtag_ratio > 0.30:
-        return True
-    return False
+    return source_type == "linkedin_posts" and hashtag_ratio > 0.30
 
-
-def has_india_context(text: str) -> bool:
-    """Must mention at least one India / Indian-regulator signal."""
-    lower = text.lower()
-    return any(kw in lower for kw in INDIA_HARD_SIGNALS)
-
-
-def has_event_intent(text: str) -> bool:
-    """Must mention an event-related keyword."""
-    lower = text.lower()
-    return any(kw in lower for kw in EVENT_HARD_SIGNALS)
-
-
-# ── Utility helpers ───────────────────────────────────────────────────────────────
 
 def make_post_id(url: str) -> str:
     return hashlib.sha256(url.strip().lower().encode()).hexdigest()
@@ -83,65 +99,37 @@ def content_hash(text: str) -> str:
     return hashlib.sha256(normalised.encode()).hexdigest()
 
 
-def classify_source_priority(company: str) -> str:
-    low = company.lower()
-    if any(k in low for k in HIGH_PRIORITY_SOURCES):   return "High Priority"
-    if any(k in low for k in MEDIUM_PRIORITY_SOURCES): return "Medium Priority"
-    return "Other"
-
-
-def is_senior_leader(title: str) -> bool:
-    return any(t in title.lower() for t in SENIOR_TITLES)
-
-
 def extract_hashtags(text: str) -> list[str]:
     return list(dict.fromkeys(re.findall(r"#\w+", text)))
 
 
-# ── Daily query rotation ──────────────────────────────────────────────────────────
-
-from datetime import datetime as _dt
-
-def get_daily_queries() -> list[str]:
-    """
-    Pick DAILY_QUERY_LIMIT queries for today using day-of-month as offset.
-    Cycles through the full SEARCH_QUERIES list over time.
-    If DAILY_QUERY_LIMIT is None, returns all queries.
-    """
+def get_daily_queries() -> list[dict]:
     if DAILY_QUERY_LIMIT is None:
-        return SEARCH_QUERIES
+        return SEARCH_SOURCE_QUERIES
 
-    day   = _dt.now().day
-    start = (day * DAILY_QUERY_LIMIT) % len(SEARCH_QUERIES)
-    end   = start + DAILY_QUERY_LIMIT
-    if end <= len(SEARCH_QUERIES):
-        return SEARCH_QUERIES[start:end]
-    return SEARCH_QUERIES[start:] + SEARCH_QUERIES[:end - len(SEARCH_QUERIES)]
+    day = datetime.now().day
+    start = (day * DAILY_QUERY_LIMIT) % len(SEARCH_SOURCE_QUERIES)
+    end = start + DAILY_QUERY_LIMIT
+    if end <= len(SEARCH_SOURCE_QUERIES):
+        return SEARCH_SOURCE_QUERIES[start:end]
+    return SEARCH_SOURCE_QUERIES[start:] + SEARCH_SOURCE_QUERIES[:end - len(SEARCH_SOURCE_QUERIES)]
 
-
-# ── Date parsing ──────────────────────────────────────────────────────────────────
 
 def parse_relative_date(date_str: str) -> datetime | None:
-    """
-    Convert Serper API relative date strings to aware UTC datetime.
-    Handles: '3 hours ago', '1 day ago', 'Apr 21, 2026', '2026-04-21', ISO 8601.
-    """
     if not date_str:
         return None
     now = datetime.now(timezone.utc)
-    s   = date_str.strip().lower()
+    s = date_str.strip().lower()
 
-    m = re.search(r"(\d+)\s+hour", s)
-    if m: return now - timedelta(hours=int(m.group(1)))
-
-    m = re.search(r"(\d+)\s+min", s)
-    if m: return now - timedelta(minutes=int(m.group(1)))
-
-    m = re.search(r"(\d+)\s+day", s)
-    if m: return now - timedelta(days=int(m.group(1)))
-
-    m = re.search(r"(\d+)\s+week", s)
-    if m: return now - timedelta(weeks=int(m.group(1)))
+    for unit, delta in (
+        ("hour", lambda n: timedelta(hours=n)),
+        ("min", lambda n: timedelta(minutes=n)),
+        ("day", lambda n: timedelta(days=n)),
+        ("week", lambda n: timedelta(weeks=n)),
+    ):
+        m = re.search(rf"(\d+)\s+{unit}", s)
+        if m:
+            return now - delta(int(m.group(1)))
 
     for fmt in ("%b %d, %Y", "%B %d, %Y", "%Y-%m-%d"):
         try:
@@ -152,16 +140,16 @@ def parse_relative_date(date_str: str) -> datetime | None:
     try:
         return datetime.fromisoformat(date_str.replace("Z", "+00:00"))
     except Exception:
-        pass
-
-    return None
+        return None
 
 
-def is_within_last_24_hours(date_str: str) -> bool:
+def is_within_recency_window(date_str: str) -> bool:
     dt = parse_relative_date(date_str)
     if dt is None:
-        return True  # can't parse → include (over-include is safer)
-    return dt >= datetime.now(timezone.utc) - timedelta(hours=24)
+        return True
+
+    days = {"day": 1, "week": 7, "month": 31}.get(SERPER_RECENCY, 1)
+    return dt >= datetime.now(timezone.utc) - timedelta(days=days)
 
 
 def _extract_author_from_title(title: str) -> str:
@@ -171,7 +159,41 @@ def _extract_author_from_title(title: str) -> str:
     return title.split(":")[0].strip() if ":" in title else title.strip()
 
 
-# ── Best-effort LinkedIn page scrape ─────────────────────────────────────────────
+def _domain_from_url(url: str) -> str:
+    try:
+        return urlparse(url).netloc.lower().replace("www.", "")
+    except Exception:
+        return ""
+
+
+def _domain_matches(domain: str, patterns: list[str]) -> bool:
+    return any(pattern in domain for pattern in patterns)
+
+
+def _is_india_focused_source(domain: str) -> bool:
+    return (
+        domain.endswith(".in")
+        or domain.endswith(".co.in")
+        or domain.endswith(".org.in")
+        or _domain_matches(domain, INDIA_FOCUSED_DOMAINS)
+    )
+
+
+def _infer_source_type(domain: str, fallback: str) -> str:
+    if "linkedin.com" in domain:
+        return "linkedin_posts"
+    if _domain_matches(domain, REGISTRATION_DOMAINS):
+        return "registration_pages"
+    if _domain_matches(domain, COMMUNITY_EVENT_DOMAINS):
+        return "community_events"
+    if _domain_matches(domain, INDUSTRY_BODY_DOMAINS):
+        return "industry_bodies"
+    if _domain_matches(domain, MEDIA_PR_DOMAINS):
+        return "media_pr"
+    if _domain_matches(domain, COMPANY_DOMAINS):
+        return "company_pages"
+    return fallback or "open_web_discovery"
+
 
 def _scrape_linkedin_meta(url: str) -> dict:
     result = {}
@@ -196,146 +218,217 @@ def _scrape_linkedin_meta(url: str) -> dict:
             if tag and tag.get("content"):
                 result["scraped_date"] = tag["content"]
                 break
-
     except Exception:
         pass
-
     return result
 
 
-# ── Serper API search ─────────────────────────────────────────────────────────────
-
-def _serper_search(query: str) -> list[dict]:
-    full_query = f'site:linkedin.com/posts {query}'
+def _serper_search(query_spec: dict) -> list[dict]:
+    full_query = query_spec["query"]
     headers = {
-        'X-API-KEY': SERPER_API_KEY,
-        'Content-Type': 'application/json'
+        "X-API-KEY": SERPER_API_KEY,
+        "Content-Type": "application/json",
     }
     payload = {
         "q": full_query,
-        "tbs": "qdr:d",
+        "tbs": SERPER_TBS_BY_RECENCY.get(SERPER_RECENCY, "qdr:d"),
         "num": 5,
         "gl": "in",
-        "hl": "en"
+        "hl": "en",
     }
     try:
         resp = requests.post(SERPER_URL, headers=headers, json=payload, timeout=15)
         resp.raise_for_status()
         results = resp.json().get("organic", [])
-        print(f"  [Serper] '{query}' → {len(results)} results")
+        print(f"  [Serper] '{full_query}' -> {len(results)} results")
         return results
     except Exception as e:
-        print(f"  [Serper] Search failed for '{query}': {e}")
+        print(f"  [Serper] Search failed for '{full_query}': {e}")
         return []
 
 
-def _parse_serper_result(result: dict) -> dict | None:
-    """
-    Convert a single Serper API organic result to a canonical post dict.
-    Returns None if the post fails any filter.
-    """
-    post_url = result.get("link", "")
+def _drop_reason(
+    source_type: str,
+    domain: str,
+    finance_kws: list[str],
+    event_kws: list[str],
+    location_kws: list[str],
+) -> str | None:
+    if not finance_kws:
+        return "missing finance signal"
+    if not event_kws:
+        return "missing event signal"
 
-    if "linkedin.com" not in post_url or "/posts/" not in post_url:
+    india_ok = bool(location_kws) or _is_india_focused_source(domain)
+    lenient_sources = {"official_event_pages", "registration_pages", "industry_bodies", "company_pages"}
+    if source_type in lenient_sources:
+        return None if india_ok or _is_india_focused_source(domain) else "weak India relevance"
+
+    if not india_ok:
+        return "weak India relevance"
+    return None
+
+
+def _parse_serper_result(result: dict, query_spec: dict) -> dict | None:
+    post_url = re.sub(r"\?.*$", "", result.get("link", ""))
+    if not post_url:
         return None
 
-    post_url    = re.sub(r"\?.*$", "", post_url)
-    title_raw   = result.get("title", "")
-    snippet     = result.get("snippet", "")
-    date_str    = result.get("date", "")
-    author_name = _extract_author_from_title(title_raw) if title_raw else "Unknown"
+    title_raw = result.get("title", "").strip()
+    snippet = result.get("snippet", "").strip()
+    date_str = result.get("date", "")
+    domain = _domain_from_url(post_url)
+    source_type = _infer_source_type(domain, query_spec.get("source_type", "open_web_discovery"))
+    query = query_spec["query"]
+    query_mode = query_spec.get("query_mode", "open_web_discovery")
 
-    meta         = _scrape_linkedin_meta(post_url)
-    content      = meta.get("content") or snippet or ""
-    author_name  = meta.get("author_name") or author_name
-    scraped_date = meta.get("scraped_date", "")
+    is_linkedin_post = "linkedin.com" in domain and "/posts/" in post_url
+    if source_type == "linkedin_posts" and not is_linkedin_post:
+        print(f"  [Scraper] Dropped (unrelated domain/topic): {domain or post_url}")
+        return None
+
+    source_name = _extract_author_from_title(title_raw) if title_raw else domain or "Unknown"
+    content_parts = [title_raw, snippet]
+    scraped_date = ""
+
+    if is_linkedin_post:
+        meta = _scrape_linkedin_meta(post_url)
+        if meta.get("content"):
+            content_parts = [title_raw, meta["content"]]
+        source_name = meta.get("author_name") or source_name
+        scraped_date = meta.get("scraped_date", "")
+
+    content = " ".join(part for part in content_parts if part).strip()
     effective_date = scraped_date or date_str
 
-    # ── Hard filters (cheap, no model needed) ────────────────────────────────────
-    if not content.strip():
-        return None
-    if is_excluded(content):
-        return None
-    if is_low_quality(content):
-        return None
-    if not has_india_context(content):
+    if not content:
+        print(f"  [Scraper] Dropped (empty content): {source_name}")
         return None
 
-    if effective_date and not is_within_last_24_hours(effective_date):
+    excluded_kws = get_excluded_matches(content)
+    if excluded_kws:
+        print(f"  [Scraper] Dropped (absolute exclusion: {excluded_kws[:2]}): {source_name}")
         return None
 
-    # ── Semantic filter (replaces all keyword scoring) ────────────────────────────
-    passes, sem_score, matched_concept = is_relevant(content)
-    
-    if has_event_intent(content):
-        sem_score = min(1.0, sem_score + 0.15)
-        if sem_score >= SEMANTIC_THRESHOLD:
-            passes = True
-
-    if not passes:
-        print(f"  [Scraper] Dropped (score={sem_score:.2f}): {author_name}")
+    if is_low_quality(content, source_type):
+        print(f"  [Scraper] Dropped (low quality): {source_name}")
         return None
 
-    print(f"  [Scraper] ✓ Kept (score={sem_score:.2f}, concept='{matched_concept}'): {author_name}")
+    finance_kws = get_finance_matches(content)
+    event_kws = get_event_matches(content)
+    location_kws = get_location_matches(content)
+    negative_kws = get_negative_matches(content)
 
-    # Format post date
+    hard_negative = [k for k in negative_kws if k in (
+        "us sec", "sec filing", "finra", "mifid", "european union", "us regulation"
+    )]
+    if hard_negative:
+        print(f"  [Scraper] Dropped (unrelated domain/topic: {hard_negative[:2]}): {source_name}")
+        return None
+    if negative_kws and not (finance_kws and event_kws and location_kws):
+        print(f"  [Scraper] Dropped (unrelated domain/topic: {negative_kws[:2]}): {source_name}")
+        return None
+
+    reason = _drop_reason(source_type, domain, finance_kws, event_kws, location_kws)
+    if reason:
+        print(f"  [Scraper] Dropped ({reason}): {source_name}")
+        return None
+
+    if effective_date and not is_within_recency_window(effective_date):
+        return None
+
+    print(
+        f"  [Scraper] Kept [{SOURCE_TYPE_LABELS.get(source_type, source_type)} | "
+        f"{domain or 'unknown domain'}]: {source_name}"
+    )
+
     dt = parse_relative_date(effective_date)
     post_date = (
         dt.strftime("%Y-%m-%d %H:%M UTC")
-        if dt else
-        datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+        if dt else datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
     )
 
+    source_record = {
+        "source_type": source_type,
+        "source_domain": domain,
+        "url": post_url,
+        "title": title_raw,
+        "query": query,
+    }
+
+    pipeline_trace = {
+        "query": query,
+        "serper_full_query": query,
+        "query_mode": query_mode,
+        "source_type": source_type,
+        "source_domain": domain,
+        "hard_filters": {
+            "finance_keywords_matched": finance_kws,
+            "event_keywords_matched": event_kws,
+            "location_keywords_matched": location_kws,
+            "negative_keywords_found": negative_kws,
+            "exclusion_keywords_found": excluded_kws,
+        },
+    }
+
     return {
-        "id":                   make_post_id(post_url),
-        "content_hash":         content_hash(content),
-        "author_name":          author_name,
-        "title":                "",
-        "company":              "",
-        "source_priority":      classify_source_priority(author_name),
-        "is_senior":            False,
-        "content":              content,
-        "post_url":             post_url,
-        "post_date":            post_date,
-        "score":                sem_score,          # semantic similarity (0.0–1.0)
-        "matched_concept":      matched_concept,    # which signal category matched
-        "likes":                0,
-        "comments":             0,
-        "hashtags":             extract_hashtags(content),
-        "category":             "",
-        "tone":                 "",
-        "regulators_mentioned": [],
-        "summary":              "",
-        "is_repost":            False,
-        "is_duplicate":         False,
-        "source":               "serper",
+        "id": make_post_id(post_url),
+        "content_hash": content_hash(content),
+        "source_type": source_type,
+        "source_domain": domain,
+        "source_name": domain or source_name,
+        "author_name": source_name,
+        "title": title_raw,
+        "content": content,
+        "snippet": snippet,
+        "post_url": post_url,
+        "url": post_url,
+        "post_date": post_date,
+        "query": query,
+        "serper_full_query": query,
+        "supporting_sources": [source_record],
+        "likes": 0,
+        "comments": 0,
+        "hashtags": extract_hashtags(content),
+        "is_repost": False,
+        "is_duplicate": False,
+        "source": "serper",
+        "pipeline_trace": pipeline_trace,
     }
 
 
-# ── Public entry point ────────────────────────────────────────────────────────────
-
 def fetch_posts() -> list[dict]:
-    """
-    Run today's rotated queries via Serper API.
-    Each surviving post has a 'score' (semantic similarity) and 'matched_concept'.
-    """
     if not SERPER_API_KEY:
-        print("[Scraper] SERPER_API_KEY not set — cannot fetch posts.")
+        print("[Scraper] SERPER_API_KEY not set - cannot fetch posts.")
         return []
 
-    queries   = get_daily_queries()
+    queries = get_daily_queries()
     all_posts: list[dict] = []
-    seen_ids:  set[str]   = set()
+    seen_ids: set[str] = set()
+    breakdown = Counter()
 
-    print(f"[Scraper] Running {len(queries)}/{len(SEARCH_QUERIES)} queries today (daily rotation).")
+    print(f"[Scraper] Running {len(queries)}/{len(SEARCH_SOURCE_QUERIES)} source-aware queries today.")
 
-    for i, query in enumerate(queries, 1):
-        print(f"\n[Scraper] Query {i}/{len(queries)}: '{query}'")
-        for result in _serper_search(query):
-            post = _parse_serper_result(result)
-            if post and post["id"] not in seen_ids:
-                seen_ids.add(post["id"])
-                all_posts.append(post)
+    for i, query_spec in enumerate(queries, 1):
+        query = query_spec["query"]
+        source_label = SOURCE_TYPE_LABELS.get(query_spec.get("source_type"), query_spec.get("source_type"))
+        mode = query_spec.get("query_mode", "open_web_discovery")
+        print(f"\n[Scraper] Query {i}/{len(queries)} [{source_label} | {mode}]: '{query}'")
 
-    print(f"\n[Scraper] {len(all_posts)} posts passed all filters.")
+        for result in _serper_search(query_spec):
+            post = _parse_serper_result(result, query_spec=query_spec)
+            if not post:
+                continue
+            if post["id"] in seen_ids:
+                print(f"  [Scraper] Dropped (duplicate): {post.get('author_name', post['id'])}")
+                continue
+            seen_ids.add(post["id"])
+            all_posts.append(post)
+            breakdown[post["source_type"]] += 1
+
+    print("\n[Scraper] Source breakdown:")
+    for source_type in SOURCE_TYPE_LABELS:
+        print(f"  - {SOURCE_TYPE_LABELS[source_type]}: {breakdown.get(source_type, 0)} kept")
+
+    print(f"\n[Scraper] {len(all_posts)} results passed all filters.")
     return all_posts

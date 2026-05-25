@@ -60,6 +60,56 @@ def _compute_completeness(post: dict) -> float:
     return score
 
 
+def _source_rank(post: dict) -> int:
+    ranks = {
+        "official_event_pages": 0,
+        "registration_pages": 1,
+        "industry_bodies": 2,
+        "company_pages": 3,
+        "linkedin_posts": 4,
+        "media_pr": 5,
+        "community_events": 6,
+        "open_web_discovery": 7,
+    }
+    return ranks.get(post.get("source_type"), 9)
+
+
+def _merge_sources(primary: dict, secondary: dict) -> dict:
+    sources_by_url = {}
+    for post in (primary, secondary):
+        for source in post.get("supporting_sources") or []:
+            url = source.get("url")
+            if url:
+                sources_by_url[url] = source
+        url = post.get("post_url")
+        if url:
+            sources_by_url.setdefault(url, {
+                "source_type": post.get("source_type", ""),
+                "source_domain": post.get("source_domain", ""),
+                "url": url,
+                "title": post.get("title", ""),
+                "query": post.get("pipeline_trace", {}).get("query", ""),
+            })
+
+    primary["supporting_sources"] = list(sources_by_url.values())
+    primary["supporting_source_count"] = max(0, len(primary["supporting_sources"]) - 1)
+
+    for field in ("event_name", "event_type", "event_dates", "location", "organiser", "target_audience", "official_link", "description"):
+        current = primary.get(field)
+        candidate = secondary.get(field)
+        if (not current or current == "Not specified") and candidate and candidate != "Not specified":
+            primary[field] = candidate
+
+    if _source_rank(secondary) < _source_rank(primary):
+        for field in ("post_url", "url", "source_type", "source_domain"):
+            if secondary.get(field):
+                primary[field] = secondary[field]
+        if secondary.get("official_link") and secondary.get("official_link") != "Not specified":
+            primary["official_link"] = secondary["official_link"]
+
+    return primary
+
+
 def deduplicate(posts: list[dict]) -> list[dict]:
     """
     Tag and filter posts using the persistent history log at the EVENT level.
@@ -94,11 +144,15 @@ def deduplicate(posts: list[dict]) -> list[dict]:
         if event_key not in events_in_batch:
             events_in_batch[event_key] = post
         else:
-            if score > events_in_batch[event_key]["_completeness"]:
-                events_in_batch[event_key]["is_duplicate"] = True
-                events_in_batch[event_key] = post
+            current = events_in_batch[event_key]
+            if score > current["_completeness"] or _source_rank(post) < _source_rank(current):
+                current["is_duplicate"] = True
+                merged = _merge_sources(post, current)
+                merged["_completeness"] = max(score, current["_completeness"])
+                events_in_batch[event_key] = merged
             else:
                 post["is_duplicate"] = True
+                events_in_batch[event_key] = _merge_sources(current, post)
 
     for event_key, post in events_in_batch.items():
         score = post["_completeness"]

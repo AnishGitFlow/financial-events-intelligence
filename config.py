@@ -1,162 +1,149 @@
 """
-config.py - Central configuration for the Indian AMC/AIF/PMS Compliance Signal Monitor
-Updated to remove the SERPER API query restriction.
+Central configuration for the Financial Services Event Intelligence Pipeline.
+
+Design principle:
+Good queries + strict gates beat fuzzy scoring.
 """
 
 import os
-from dotenv import load_dotenv
 
-load_dotenv()
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
 
-# ── API Keys ─────────────────────────────────────────────────────────────────────
+# --- API keys ---
 SERPER_API_KEY = os.getenv("SERPER_API_KEY", "")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
-GEMINI_MODEL   = os.getenv("GEMINI_MODEL", "gemini-2.0-flash-lite")
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.0-flash-lite")
 
-# ── Email Delivery (Microsoft 365 / Outlook) ─────────────────────────────────────
-SMTP_HOST     = os.getenv("SMTP_HOST", "smtp.office365.com")
-SMTP_PORT     = int(os.getenv("SMTP_PORT", "587"))
-SMTP_USER     = os.getenv("SMTP_USER", "")
+# --- Email delivery ---
+SMTP_HOST = os.getenv("SMTP_HOST", "smtp.office365.com")
+SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
+SMTP_USER = os.getenv("SMTP_USER", "")
 SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")
-REPORT_TO     = os.getenv("REPORT_TO", "")
-REPORT_FROM   = os.getenv("REPORT_FROM", SMTP_USER)
+REPORT_TO = os.getenv("REPORT_TO", "")
+REPORT_FROM = os.getenv("REPORT_FROM", SMTP_USER)
 
-# ── Scheduler ─────────────────────────────────────────────────────────────────────
-SCHEDULE_TIME = os.getenv("SCHEDULE_TIME", "08:00")  # 24-hr IST
+# --- Scheduler ---
+SCHEDULE_TIME = os.getenv("SCHEDULE_TIME", "08:00")
 
-# ── API Usage Settings ────────────────────────────────────────────────────────────
-# Set to None to process ALL search queries every run.
-# If you later want throttling again, set a numeric value like 5 or 10.
+# --- Search and API usage ---
 DAILY_QUERY_LIMIT = None
+SERPER_RECENCY = os.getenv("SERPER_RECENCY", "day")
+SERPER_TBS_BY_RECENCY = {
+    "day": "qdr:d",
+    "week": "qdr:w",
+    "month": "qdr:m",
+}
 
-# Gemini processing limits
+# --- Gemini limits ---
 TOP_POSTS_FOR_LLM = 5
 MAX_CHARS_FOR_LLM = 700
 
-# ── Semantic Engine Settings ──────────────────────────────────────────────────────
-# Cosine similarity threshold (0.0–1.0). Posts below this are discarded.
-# 0.35 = permissive (more posts pass), 0.50 = strict (only high-match posts pass)
-# Increased slightly to reduce noisy posts.
-# Recommended range:
-# 0.40 = balanced
-# 0.45 = strict high-intent filtering
-SEMANTIC_THRESHOLD = 0.42
-
-# ==============================================================================
-# TARGET CONCEPTS
-# ==============================================================================
-
-TARGET_CONCEPTS = {
-
-    "Industry Conference": (
-        "A large-scale gathering or conference focused on the Indian AMC, AIF, PMS, "
-        "or wealth management industries. Includes discussions on market trends, "
-        "regulations, and investment strategies."
-    ),
-
-    "Leadership Summit": (
-        "A high-level summit for CXOs, founders, and senior leaders in the financial "
-        "services sector, specifically focusing on asset and wealth management in India."
-    ),
-
-    "Educational Webinar": (
-        "An online webinar or virtual session providing educational content, market "
-        "outlooks, or technical discussions for finance professionals and wealth advisors."
-    ),
-
-    "Professional Workshop": (
-        "An interactive training or workshop designed for skill enhancement in portfolio "
-        "management, financial advisory, or wealthtech."
-    ),
-
-    "Networking Meetup": (
-        "An informal or formal networking event, meetup, or mixer for professionals "
-        "in the financial advisory, wealth management, or investment industries."
-    ),
-
-    "Investment Industry Event": (
-        "A general gathering, seminar, or event focused on the broader investment "
-        "industry, including alternative investments and portfolio management."
-    ),
-
-    "Wealth Management Event": (
-        "An event, roundtable, or discussion panel specifically tailored to wealth "
-        "managers, family offices, and financial advisors."
-    ),
-
-    "Financial Advisory Event": (
-        "A seminar, workshop, or conference catering to mutual fund distributors (MFDs), "
-        "registered investment advisors (RIAs), and financial planners."
-    ),
+# --- Source labels ---
+SOURCE_TYPE_LABELS = {
+    "linkedin_posts": "LinkedIn posts",
+    "official_event_pages": "Official/event pages",
+    "registration_pages": "Registration pages",
+    "industry_bodies": "Industry bodies",
+    "company_pages": "Company pages",
+    "media_pr": "Media/PR",
+    "community_events": "Community/open web",
+    "open_web_discovery": "Open-web discovery",
 }
 
-# ==============================================================================
-# HARD FILTERS
-# ==============================================================================
+# --- Trusted / known domains for source inference ---
+REGISTRATION_DOMAINS = [
+    "townscript.com", "eventbrite.", "allevents.in", "meraevents.com",
+    "explara.com", "bookmyshow.com", "zoom.us", "gotowebinar.com",
+    "events.microsoft.com", "airmeet.com", "hubilo.com", "10times.com",
+    "cvent.com",
+]
 
-# More permissive India relevance filter.
-# Avoids dropping useful operational posts that don't explicitly mention India.
-INDIA_HARD_SIGNALS = [
-    "india", "indian", "sebi", "amfi", "rbi", "pmla", "dpdp",
-    "aif", "pms", "amc", "mutual fund", "wealth management",
-    "asset management", "fund house", "investment management",
-    "nse", "bse", "compliance", "audit", "regulatory",
+COMMUNITY_EVENT_DOMAINS = [
+    "lu.ma", "meetup.com",
+]
+
+INDUSTRY_BODY_DOMAINS = [
+    "amfiindia.com", "cfasocietyindia.org", "fpsbindia.org", "nism.ac.in",
+    "sebi.gov.in", "nseindia.com", "bseindia.com", "nsdl.co.in",
+    "cdslindia.com", "ivca.in", "ficci.in", "cii.in", "assocham.org",
+    "phdcci.in", "imcnet.org",
+]
+
+MEDIA_PR_DOMAINS = [
+    "bfsi.economictimes.indiatimes.com", "economictimes.indiatimes.com",
+    "moneycontrol.com", "business-standard.com", "livemint.com",
+    "financialexpress.com", "cnbctv18.com", "prnewswire.com",
+    "businesswireindia.com", "aninews.in", "apnnews.com", "mediabrief.com",
+]
+
+COMPANY_DOMAINS = [
+    "hdfcfund.com", "icicipruamc.com", "sbimf.com", "kotakmf.com",
+    "mutualfund.adityabirlacapital.com", "nipponindiamf.com",
+    "axismf.com", "miraeassetmf.co.in", "dspim.com", "nuvama.com",
+    "360.one", "motilaloswalmf.com", "askfinancials.com", "marcellus.in",
+    "whiteoakamc.com", "helioscapital.in", "alchemycapital.com",
+    "pmsbazaar.com", "pmsaifworld.com", "cafemutual.com", "networkfp.com",
+]
+
+INDIA_FOCUSED_DOMAINS = (
+    REGISTRATION_DOMAINS
+    + INDUSTRY_BODY_DOMAINS
+    + COMPANY_DOMAINS
+    + ["in", ".co.in", ".org.in", "indiatimes.com"]
+)
+
+# --- Hard filter vocabulary ---
+FINANCE_DOMAIN_SIGNALS = [
+    "wealth", "wealth management", "wealth manager", "wealth advisor",
+    "private wealth", "private banking", "family office", "family offices",
+    "hni", "uhni", "amc", "asset management", "mutual fund",
+    "fund manager", "pms", "portfolio management", "aif",
+    "alternative investment", "alternate investment", "ria",
+    "investment adviser", "investment advisor", "investment advisory",
+    "financial advisor", "financial adviser", "financial planning",
+    "distributor", "mfd", "ifa", "bfsi", "fintech", "capital markets",
+    "sebi", "amfi", "nism", "nse", "bse",
 ]
 
 EVENT_HARD_SIGNALS = [
-    "upcoming event", "event registration", "speaker announcement",
-    "event invitation", "industry gathering", "networking event",
-    "educational session", "register now", "conference", "summit",
-    "webinar", "workshop", "meetup", "panel discussion"
+    "summit", "conference", "conclave", "webinar", "seminar", "panel",
+    "workshop", "register", "registration", "join us", "speaker",
+    "speakers", "agenda", "fireside chat", "roundtable", "meetup",
+    "forum", "symposium", "masterclass", "event", "session",
+]
+
+INDIA_LOCATION_SIGNALS = [
+    "india", "indian", "mumbai", "delhi", "new delhi", "bengaluru",
+    "bangalore", "chennai", "hyderabad", "pune", "kolkata", "ahmedabad",
+    "gift city", "gurgaon", "gurugram", "noida", "navi mumbai",
 ]
 
 EXCLUDE_KEYWORDS = [
-
-    # Non-India regulations
-    "us sec",
-    "sec filing",
-    "finra",
-    "mifid",
-    "european union",
-    "us regulation",
-
-    # Spam / low-intent hiring
-    "walk-in interview",
-    "mass hiring",
-    "certificate course",
-    "training program",
-
-    # Generic engagement bait
-    "like and share",
+    "walk-in interview", "mass hiring", "job opening", "we are hiring",
+    "certificate course", "certification course", "like and share",
     "subscribe now",
 ]
 
-# ==============================================================================
-# SOURCE PRIORITY
-# ==============================================================================
-
-HIGH_PRIORITY_SOURCES = [
-    "morningstar", "morningstar india", "business standard", "business standard events",
-    "networkfp", "cafe mutual", "pms bazaar", "pms aif world",
-    "financial freedom fraternity", "cfa society india", "equalifi",
-    "moneycontrol", "aafm india", "association of portfolio managers in india", "hubbis"
+NEGATIVE_SIGNALS = [
+    "telecom", "servicenow", "climate adaptation", "net zero",
+    "houston ecosystem", "female founders", "cybersecurity",
+    "corporate governance", "generic tech meetup", "startup meetup",
+    "sam conference", "us sec", "sec filing", "finra", "mifid",
+    "european union", "us regulation",
 ]
 
-MEDIUM_PRIORITY_SOURCES = [
-    "amc", "aif", "pms", "asset management", "investment management",
-    "mutual fund", "fund house", "wealth management",
-    "fintech", "investment advisory", "wealthtech", "capital markets",
-]
-
-# ==============================================================================
-# EVENT NORMALIZATION
-# ==============================================================================
-
+# --- Event normalization ---
 EVENT_NORMALIZATION_MAPPINGS = {
     "conference": "Conference",
     "seminar": "Conference",
     "summit": "Summit",
     "conclave": "Summit",
+    "forum": "Summit",
+    "symposium": "Conference",
     "webinar": "Webinar",
     "virtual event": "Webinar",
     "online session": "Webinar",
@@ -165,102 +152,53 @@ EVENT_NORMALIZATION_MAPPINGS = {
     "masterclass": "Workshop",
     "meetup": "Meetup",
     "networking": "Meetup",
-    "mixer": "Meetup"
+    "mixer": "Meetup",
 }
 
-# ==============================================================================
-# SENIORITY FILTER
-# ==============================================================================
+# --- Source-aware queries ---
+SEARCH_SOURCE_QUERIES = [
+    # Trusted site queries
+    {"source_type": "linkedin_posts", "query_mode": "trusted_site", "query": "site:linkedin.com/posts AIF PMS conclave India"},
+    {"source_type": "linkedin_posts", "query_mode": "trusted_site", "query": "site:linkedin.com/posts wealth management summit India"},
+    {"source_type": "linkedin_posts", "query_mode": "trusted_site", "query": "site:linkedin.com/posts mutual fund distributor event India"},
+    {"source_type": "registration_pages", "query_mode": "trusted_site", "query": "site:townscript.com wealth management summit India"},
+    {"source_type": "registration_pages", "query_mode": "trusted_site", "query": "site:eventbrite.com investment webinar India"},
+    {"source_type": "registration_pages", "query_mode": "trusted_site", "query": "site:allevents.in investment seminar India"},
+    {"source_type": "community_events", "query_mode": "trusted_site", "query": "site:lu.ma wealthtech roundtable India"},
+    {"source_type": "community_events", "query_mode": "trusted_site", "query": "site:meetup.com financial services meetup India"},
+    {"source_type": "industry_bodies", "query_mode": "trusted_site", "query": "site:cfasocietyindia.org investment event India"},
+    {"source_type": "industry_bodies", "query_mode": "trusted_site", "query": "site:amfiindia.com mutual fund distributor event"},
+    {"source_type": "industry_bodies", "query_mode": "trusted_site", "query": "site:nism.ac.in investor awareness webinar"},
+    {"source_type": "industry_bodies", "query_mode": "trusted_site", "query": "site:ivca.in AIF summit India"},
 
-SENIOR_TITLES = [
-    "cxo", "ceo", "cfo", "coo", "cto", "cro", "chief",
-    "founder", "co-founder", "director", "managing director",
-    "vp", "vice president", "head", "principal", "partner",
+    # Open-web intent queries
+    {"source_type": "official_event_pages", "query_mode": "open_web_intent", "query": '"AIF PMS conclave India" "register"'},
+    {"source_type": "official_event_pages", "query_mode": "open_web_intent", "query": '"wealth management summit India" "agenda"'},
+    {"source_type": "official_event_pages", "query_mode": "open_web_intent", "query": '"mutual fund distributor conference India" "speakers"'},
+    {"source_type": "official_event_pages", "query_mode": "open_web_intent", "query": '"family office summit India" "venue"'},
+    {"source_type": "official_event_pages", "query_mode": "open_web_intent", "query": '"investment advisory webinar India" "registration"'},
+    {"source_type": "official_event_pages", "query_mode": "open_web_intent", "query": '"financial planning seminar India" "register"'},
+    {"source_type": "official_event_pages", "query_mode": "open_web_intent", "query": '"asset management conference India" "agenda"'},
+
+    # Broad discovery queries
+    {"source_type": "open_web_discovery", "query_mode": "broad_discovery", "query": "upcoming financial services events India wealth management"},
+    {"source_type": "open_web_discovery", "query_mode": "broad_discovery", "query": "upcoming investment webinars India PMS AIF"},
+    {"source_type": "open_web_discovery", "query_mode": "broad_discovery", "query": "financial advisory workshop India registration"},
+    {"source_type": "open_web_discovery", "query_mode": "broad_discovery", "query": "wealthtech roundtable India"},
+    {"source_type": "open_web_discovery", "query_mode": "broad_discovery", "query": "family office private wealth event India"},
+    {"source_type": "open_web_discovery", "query_mode": "broad_discovery", "query": "mutual fund distributor conference India"},
 ]
 
-# ==============================================================================
-# SEARCH QUERIES
-# Tailored specifically for discovering event announcements.
-# ==============================================================================
-
-SEARCH_QUERIES = [
-
-    # --------------------------------------------------------------------------
-    # Conferences and Summits
-    # --------------------------------------------------------------------------
-    "AMC conference India",
-    "wealth management summit India",
-    "portfolio management conference",
-    "register now investment summit",
-    "mutual fund distributor conference",
-    "investment banking summit India",
-    "AIF PMS conclave",
-
-    # --------------------------------------------------------------------------
-    # Webinars and Virtual Events
-    # --------------------------------------------------------------------------
-    "AIF webinar India",
-    "wealthtech webinar",
-    "online investment seminar India",
-
-    # --------------------------------------------------------------------------
-    # Meetups and Workshops
-    # --------------------------------------------------------------------------
-    "PMS meetup India",
-    "investment advisory workshop",
-    "financial services networking event",
-    "wealth management panel discussion",
-    "financial planning seminar India",
-    "CFA investment event India",
-
-    # --------------------------------------------------------------------------
-    # High-Intent Conversational Queries
-    # --------------------------------------------------------------------------
-    "join us at our upcoming conference",
-    "excited to speak at the wealth management summit",
-    "register for our exclusive investment webinar",
-    "looking forward to the financial advisory workshop",
-    "networking with industry leaders at the meetup",
-]
-
-# ==============================================================================
-# OPTIONAL HELPER FUNCTION
-# ==============================================================================
-
-def get_active_queries():
-    """
-    Returns all search queries if DAILY_QUERY_LIMIT is None.
-    Otherwise returns a limited subset.
-    """
-
-    if DAILY_QUERY_LIMIT is None:
-        return SEARCH_QUERIES
-
-    return SEARCH_QUERIES[:DAILY_QUERY_LIMIT]
-
-
-# ==============================================================================
-# BACKWARD-COMPATIBLE QUERY ROTATION FUNCTION
-# ==============================================================================
 
 def get_daily_queries(day=0):
-    """
-    Returns active search queries.
-
-    If DAILY_QUERY_LIMIT is None:
-        returns ALL queries.
-
-    Otherwise:
-        rotates queries daily to reduce SERPER usage.
-    """
-
+    """Return all configured queries or a rotating subset when DAILY_QUERY_LIMIT is set."""
     if DAILY_QUERY_LIMIT is None:
-        return SEARCH_QUERIES
+        return SEARCH_SOURCE_QUERIES
 
-    start = (day * DAILY_QUERY_LIMIT) % len(SEARCH_QUERIES)
+    start = (day * DAILY_QUERY_LIMIT) % len(SEARCH_SOURCE_QUERIES)
     end = start + DAILY_QUERY_LIMIT
 
-    if end <= len(SEARCH_QUERIES):
-        return SEARCH_QUERIES[start:end]
+    if end <= len(SEARCH_SOURCE_QUERIES):
+        return SEARCH_SOURCE_QUERIES[start:end]
 
-    return SEARCH_QUERIES[start:] + SEARCH_QUERIES[: end - len(SEARCH_QUERIES)]
+    return SEARCH_SOURCE_QUERIES[start:] + SEARCH_SOURCE_QUERIES[: end - len(SEARCH_SOURCE_QUERIES)]

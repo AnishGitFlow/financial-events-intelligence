@@ -2,13 +2,12 @@
 enricher.py - Optimised AI enrichment using Google Gemini with rule-based fallback.
 
 Token-saving pipeline:
-  1. Sort posts by signal score (highest first)
+  1. Prefer cleaner source types for optional Gemini enrichment
   2. Only top TOP_POSTS_FOR_LLM posts are eligible for Gemini
-  3. Each post must score >= MIN_SIGNAL_SCORE to reach Gemini
-  4. Post content is truncated to MAX_CHARS_FOR_LLM before the Gemini call
-  5. Minimal JSON prompt is used (< 50 tokens of instructions)
-  6. 5-second delay between Gemini calls to respect free-tier rate limits
-  7. All other posts fall back to fast rule-based enrichment
+  3. Post content is truncated to MAX_CHARS_FOR_LLM before the Gemini call
+  4. Minimal JSON prompt is used
+  5. 5-second delay between Gemini calls to respect free-tier rate limits
+  6. All other posts fall back to fast rule-based enrichment
 """
 import json
 import re
@@ -19,7 +18,7 @@ import dateparser
 
 from config import (
     GEMINI_API_KEY, GEMINI_MODEL,
-    TOP_POSTS_FOR_LLM, MAX_CHARS_FOR_LLM, SEMANTIC_THRESHOLD,
+    TOP_POSTS_FOR_LLM, MAX_CHARS_FOR_LLM,
     EVENT_NORMALIZATION_MAPPINGS,
 )
 
@@ -36,12 +35,16 @@ except Exception:
     _client = None
     genai_types = None
 
+# Fail-fast quota flag: set to True on first 429 / RESOURCE_EXHAUSTED error.
+# All subsequent posts in the same run immediately fall back to rule-based.
+_gemini_quota_exhausted: bool = False
+
 # ── Constants ────────────────────────────────────────────────────────────────────
 EVENT_TYPES = ["Conference", "Summit", "Webinar", "Workshop", "Meetup", "Other"]
 
 # ── Minimal Gemini prompt (keeps token usage extremely low) ──────────────────────
 _GEMINI_PROMPT = """\
-Extract event intelligence from this LinkedIn post in India's financial sector.
+Extract event intelligence from this search result or post in India's financial sector.
 Return ONLY valid JSON, no markdown. Never hallucinate missing information.
 Use "Not specified" for missing fields.
 
@@ -56,7 +59,7 @@ Use "Not specified" for missing fields.
   "description": "<2-3 lines factual summary>"
 }}
 
-POST:
+CONTENT:
 {content}"""
 
 
@@ -64,7 +67,9 @@ POST:
 
 def _gemini_enrich(content: str) -> dict | None:
     """Call Gemini with a truncated post and minimal prompt. Returns None on failure."""
-    if not _client:
+    global _gemini_quota_exhausted
+
+    if not _client or _gemini_quota_exhausted:
         return None
 
     clean_text = content[:MAX_CHARS_FOR_LLM]
@@ -88,7 +93,20 @@ def _gemini_enrich(content: str) -> dict | None:
         if required.issubset(data.keys()):
             return data
     except Exception as e:
-        print(f"  [Enricher] Gemini failed: {e}")
+        err = str(e)
+        # Detect hard quota signals and fail-fast for the rest of this run
+        quota_signals = (
+            "429", "RESOURCE_EXHAUSTED", "daily quota",
+            "request limit 0", "input token limit 0",
+        )
+        if any(sig in err for sig in quota_signals):
+            _gemini_quota_exhausted = True
+            print(
+                "[Enricher] Gemini unavailable: quota exhausted. "
+                "Falling back to rule-based enrichment for remaining posts."
+            )
+        else:
+            print(f"  [Enricher] Gemini failed: {e}")
     return None
 
 
@@ -102,7 +120,7 @@ def extract_external_links(content: str) -> list[str]:
         if "linkedin.com" not in link:
             external.append(link)
     
-    event_platforms = ["eventbrite", "hubilo", "airmeet", "townscript", "10times", "lu.ma", "cvent"]
+    event_platforms = ["eventbrite", "hubilo", "airmeet", "townscript", "10times", "lu.ma", "cvent", "allevents", "meraevents", "explara"]
     def score_link(l):
         return sum(1 for p in event_platforms if p in l.lower())
     
@@ -163,15 +181,41 @@ def normalize_event_type(text: str) -> str:
             return v
     return "Other"
 
+# Known city signals: order matters (first match wins).
+_CITY_SIGNALS: list[tuple[str, str]] = [
+    ("virtual",    "Online/Virtual"), ("online",    "Online/Virtual"),
+    ("zoom",       "Online/Virtual"), ("teams",     "Online/Virtual"),
+    ("webcast",    "Online/Virtual"),
+    ("mumbai",     "Mumbai"),         ("bombay",    "Mumbai"),
+    ("delhi",      "Delhi NCR"),      ("ncr",       "Delhi NCR"),
+    ("bengaluru",  "Bengaluru"),      ("bangalore", "Bengaluru"),
+    ("chennai",    "Chennai"),
+    ("hyderabad",  "Hyderabad"),
+    ("pune",       "Pune"),
+    ("kolkata",    "Kolkata"),
+]
+
+
 def normalize_location(text: str) -> str:
+    """
+    Map a location string to a canonical city name or sentinel.
+
+    Contract:
+      - Always returns one of the known city strings, "Online/Virtual",
+        or "Not specified".
+      - NEVER returns arbitrary freeform text.
+
+    Do NOT pass full post bodies here — only pass a field that is already
+    expected to contain a location (e.g. Gemini's ``location`` output).
+    """
+    if not text or text.strip().lower() in ("", "not specified"):
+        return "Not specified"
     low = text.lower()
-    if any(k in low for k in ("virtual", "online", "zoom", "teams", "webcast")):
-        return "Online/Virtual"
-    elif "mumbai" in low or "bombay" in low: return "Mumbai"
-    elif "delhi" in low or "ncr" in low: return "Delhi NCR"
-    elif "bengaluru" in low or "bangalore" in low: return "Bengaluru"
-    elif "chennai" in low: return "Chennai"
-    return text if text and text != "Not specified" else "Not specified"
+    for signal, canonical in _CITY_SIGNALS:
+        if signal in low:
+            return canonical
+    # No known city found — return the sentinel, never the raw input.
+    return "Not specified"
 
 # ── Rule-based fallback ──────────────────────────────────────────────────────────
 
@@ -179,7 +223,24 @@ def _rule_based_enrich(content: str) -> dict:
     low = content.lower()
 
     event_type = normalize_event_type(low)
-    location = normalize_location(low)
+
+    # Extract location: scan for known cities/virtual signals only.
+    # Do NOT pass the full content to normalize_location — its fallback
+    # returns the input string verbatim, which would corrupt the location badge.
+    _LOCATION_SIGNALS = [
+        ("virtual", "Online/Virtual"), ("online", "Online/Virtual"),
+        ("zoom", "Online/Virtual"), ("webcast", "Online/Virtual"),
+        ("mumbai", "Mumbai"), ("bombay", "Mumbai"),
+        ("delhi", "Delhi NCR"), (" ncr", "Delhi NCR"),
+        ("bengaluru", "Bengaluru"), ("bangalore", "Bengaluru"),
+        ("chennai", "Chennai"), ("hyderabad", "Hyderabad"),
+        ("pune", "Pune"), ("kolkata", "Kolkata"),
+    ]
+    location = "Not specified"
+    for signal, city in _LOCATION_SIGNALS:
+        if signal in low:
+            location = city
+            break
 
     external_links = extract_external_links(content)
     official_link = external_links[0] if external_links else "Not specified"
@@ -226,13 +287,14 @@ def enrich_post(post: dict, use_gemini: bool = False) -> dict:
     If use_gemini=False, use rule-based only (no API call).
     """
     content = post.get("content", "")
-    data = None
+    gemini_data = None
     if use_gemini:
-        data = _gemini_enrich(content)
-        
-    if not data:
-        data = _rule_based_enrich(content)
-    else:
+        gemini_data = _gemini_enrich(content)
+
+    gemini_succeeded = gemini_data is not None
+
+    if gemini_succeeded:
+        data = gemini_data
         # Normalize Gemini output
         data["event_type"] = normalize_event_type(data.get("event_type", ""))
         data["location"] = normalize_location(data.get("location", ""))
@@ -242,31 +304,54 @@ def enrich_post(post: dict, use_gemini: bool = False) -> dict:
             external_links = extract_external_links(content)
             if external_links:
                 data["official_link"] = external_links[0]
-                
-    data["source_name"] = post.get("author_name", "Unknown")
-    return {**post, **data}
+    else:
+        data = _rule_based_enrich(content)
+
+    if (
+        data.get("official_link") in (None, "", "Not specified")
+        and post.get("source_type") != "linkedin_posts"
+        and post.get("post_url")
+    ):
+        data["official_link"] = post["post_url"]
+
+    data["source_name"] = post.get("source_domain") or post.get("author_name", "Unknown")
+    enriched_post = {**post, **data}
+
+    # Stamp enrichment method into the pipeline trace
+    trace = enriched_post.get("pipeline_trace")
+    if isinstance(trace, dict):
+        trace["enrichment_method"] = "gemini" if gemini_succeeded else "rule-based"
+
+    return enriched_post
 
 
 def enrich_batch(posts: list[dict]) -> list[dict]:
     """
     Token-optimised batch enrichment:
-      1. Sort by signal score (desc)
-      2. Top TOP_POSTS_FOR_LLM posts scoring >= MIN_SIGNAL_SCORE go to Gemini
-         (with 5-second rate-limit delay between calls)
-      3. All remaining posts are rule-based only
+      1. Sort by source preference.
+      2. Top TOP_POSTS_FOR_LLM posts go to Gemini with a 5-second delay.
+      3. All remaining posts are rule-based only.
+      4. If Gemini returns a quota error on any call, _gemini_quota_exhausted is
+         set to True and ALL remaining posts in this run fall back immediately
+         without sleeping.
     """
+    global _gemini_quota_exhausted
+
     if not posts:
         return []
 
-    # Sort highest-signal posts first
-    sorted_posts = sorted(posts, key=lambda p: p.get("score", 0), reverse=True)
-
-    # Posts with semantic score >= SEMANTIC_THRESHOLD qualify for Gemini
-    # (score is 0.0–1.0 from the embedding model)
-    gemini_candidates = [
-        p for p in sorted_posts
-        if p.get("score", 0.0) >= SEMANTIC_THRESHOLD
-    ][:TOP_POSTS_FOR_LLM]
+    source_rank = {
+        "official_event_pages": 0,
+        "registration_pages": 1,
+        "industry_bodies": 2,
+        "company_pages": 3,
+        "linkedin_posts": 4,
+        "media_pr": 5,
+        "community_events": 6,
+        "open_web_discovery": 7,
+    }
+    sorted_posts = sorted(posts, key=lambda p: source_rank.get(p.get("source_type"), 9))
+    gemini_candidates = sorted_posts[:TOP_POSTS_FOR_LLM]
 
     gemini_ids = {p["id"] for p in gemini_candidates}
 
@@ -274,26 +359,23 @@ def enrich_batch(posts: list[dict]) -> list[dict]:
     fallback_count = len(posts) - gemini_count
 
     print(f"[Enricher] {gemini_count} posts → Gemini  |  {fallback_count} posts → rule-based")
-    if gemini_count == 0:
-        print(f"[Enricher] No posts met SEMANTIC_THRESHOLD={SEMANTIC_THRESHOLD}. All rule-based.")
-
     enriched: list[dict] = []
     gemini_call_n = 0
 
     for post in sorted_posts:
-        use_gemini = post["id"] in gemini_ids
+        use_gemini = post["id"] in gemini_ids and not _gemini_quota_exhausted
 
         try:
             name = post.get("author_name", "Unknown")
             tag  = "Gemini" if use_gemini else "rule"
-            score = post.get("score", 0)
-            print(f"  [Enricher] [{tag}] score={score}  {name}")
+            source_type = post.get("source_type", "unknown")
+            print(f"  [Enricher] [{tag}] source={source_type}  {name}")
         except UnicodeEncodeError:
             print(f"  [Enricher] [{'Gemini' if use_gemini else 'rule'}] [Non-ASCII Name]")
 
         if use_gemini:
             gemini_call_n += 1
-            if gemini_call_n > 1:
+            if gemini_call_n > 1 and not _gemini_quota_exhausted:
                 # Rate-limit: 5-second pause between Gemini calls
                 print(f"  [Enricher] Sleeping 5s (rate limit)...")
                 time.sleep(5)
