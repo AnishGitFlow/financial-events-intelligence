@@ -1,133 +1,5 @@
 {
   "events": {
-    "global wealth creation summit|2026-04-25": {
-      "completeness": 8.0,
-      "seen_at": "2026-04-28T07:58:46.934699+00:00"
-    },
-    "watch the full video.|not specified": {
-      "completeness": 7.0,
-      "seen_at": "2026-04-28T07:58:46.934699+00:00"
-    },
-    "i’ve been organizing claude ai meetups in mumbai for a while now.|not specified": {
-      "completeness": 6.26,
-      "seen_at": "2026-04-28T07:58:46.934699+00:00"
-    },
-    "global conference|not specified": {
-      "completeness": 7.0,
-      "seen_at": "2026-04-28T07:58:46.934699+00:00"
-    },
-    "this conversation and for an incredible day of learning, connection, and inspiration|not specified": {
-      "completeness": 7.0,
-      "seen_at": "2026-04-28T07:58:46.934699+00:00"
-    },
-    "• low entry barrier and flexibility|not specified": {
-      "completeness": 7.0,
-      "seen_at": "2026-04-28T07:58:46.934699+00:00"
-    },
-    "linkedin|2026-05-06": {
-      "completeness": 8.56,
-      "seen_at": "2026-04-28T07:58:46.934699+00:00"
-    },
-    "to register and access the agenda: https://cstu.io/8ad3f6|2026-06-18": {
-      "completeness": 11.0,
-      "seen_at": "2026-04-28T07:58:46.934699+00:00"
-    },
-    "small, intentional, human moments that add up to something much bigger.|not specified": {
-      "completeness": 7.0,
-      "seen_at": "2026-04-28T07:58:46.934699+00:00"
-    },
-    "looking forward to seeing all key capital market players at this event.|not specified": {
-      "completeness": 7.0,
-      "seen_at": "2026-04-28T07:58:46.934699+00:00"
-    },
-    "london business school india conclave|not specified": {
-      "completeness": 5.09,
-      "seen_at": "2026-04-28T07:58:46.934699+00:00"
-    },
-    "linkedin|2026-05-29": {
-      "completeness": 8.56,
-      "seen_at": "2026-04-28T07:58:46.934699+00:00"
-    },
-    "#mumbai is always special.|not specified": {
-      "completeness": 5.0600000000000005,
-      "seen_at": "2026-04-28T07:58:46.934699+00:00"
-    },
-    "#ctil #internationaltradelaw #climategovernance #carbonmarkets|2026-04-25": {
-      "completeness": 8.0,
-      "seen_at": "2026-04-28T07:58:46.934699+00:00"
-    },
-    "mercer summit|2026-04-24": {
-      "completeness": 8.0,
-      "seen_at": "2026-04-29T05:43:39.007013+00:00"
-    },
-    "equal future summit|not specified": {
-      "completeness": 7.0,
-      "seen_at": "2026-04-29T05:43:39.007013+00:00"
-    },
-    "equal future summit|2026-04-25": {
-      "completeness": 8.0,
-      "seen_at": "2026-04-29T05:43:39.007013+00:00"
-    },
-    "linkedin|2026-05-04": {
-      "completeness": 8.56,
-      "seen_at": "2026-04-29T05:43:39.007013+00:00"
-    },
-    "linkedin|2026-06-18": {
-      "completeness": 8.56,
-      "seen_at": "2026-04-29T05:43:39.007013+00:00"
-    },
-    "taking mercer summit|2026-04-24": {
-      "completeness": 7.21,
-      "seen_at": "2026-04-29T05:43:39.007013+00:00"
-    },
-    "two summit|2026-04-24": {
-      "completeness": 5.5,
-      "seen_at": "2026-04-29T05:43:39.007013+00:00"
-    },
-    "🥁 webinar alert 🥁|2026-05-05": {
-      "completeness": 7.34,
-      "seen_at": "2026-04-29T05:43:39.007013+00:00"
-    },
-    "thrive the womens leadership summit on wealth and wellness 2026 june - opal group|2026-06-04": {
-      "completeness": 10.75,
-      "seen_at": "2026-04-29T05:43:39.007013+00:00"
-    },
-    "linkedin|2026-10-22": {
-      "completeness": 8.56,
-      "seen_at": "2026-04-29T05:43:39.007013+00:00"
-    },
-    "regional investor seminar for awareness|2026-04-29": {
-      "completeness": 8.0,
-      "seen_at": "2026-04-29T05:43:39.007013+00:00"
-    },
-    "annual compliance conference|not specified": {
-      "completeness": 7.0,
-      "seen_at": "2026-04-29T05:43:39.007013+00:00"
-    },
-    "linkedin|2026-05-23": {
-      "completeness": 8.56,
-      "seen_at": "2026-04-29T05:43:39.007013+00:00"
-    },
-    "qube events | nextgen payments & regtech barcelona|2026-05-07": {
-      "completeness": 12.879999999999999,
-      "seen_at": "2026-04-29T05:43:39.007013+00:00"
-    },
-    "#impower #fundforum impower fundforum|not specified": {
-      "completeness": 5.57,
-      "seen_at": "2026-04-29T05:43:39.007013+00:00"
-    },
-    "vigilance conference|not specified": {
-      "completeness": 5.74,
-      "seen_at": "2026-04-29T05:43:39.007013+00:00"
-    },
-    "linkedin|2026-05-07": {
-      "completeness": 8.56,
-      "seen_at": "2026-04-29T05:43:39.007013+00:00"
-    },
-    "capability - culture - connection - change|2026-05-20": {
-      "completeness": 7.65,
-      "seen_at": "2026-04-29T05:43:39.007013+00:00"
-    },
     "#finsummit2026 #wealthmanagement #investments #networking #finolutions|not specified": {
       "completeness": 7.0,
       "seen_at": "2026-04-30T05:47:57.759498+00:00"
@@ -1319,6 +1191,18 @@
     "financial wellness workshop|2026-05-16": {
       "completeness": 8.56,
       "seen_at": "2026-05-28T06:35:51.001668+00:00"
+    },
+    "at impact summit|not specified": {
+      "completeness": 6.0,
+      "seen_at": "2026-05-29T06:37:09.952584+00:00"
+    },
+    "linkedin|2026-05-31": {
+      "completeness": 7.5600000000000005,
+      "seen_at": "2026-05-29T06:37:09.952584+00:00"
+    },
+    "business partner conference|not specified": {
+      "completeness": 8.23,
+      "seen_at": "2026-05-29T06:37:09.952584+00:00"
     }
   }
 }
