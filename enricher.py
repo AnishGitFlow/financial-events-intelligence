@@ -1,12 +1,12 @@
 """
-enricher.py - Optimised AI enrichment using Google Gemini with rule-based fallback.
+enricher.py - Optimised AI enrichment using OpenRouter with rule-based fallback.
 
 Token-saving pipeline:
-  1. Prefer cleaner source types for optional Gemini enrichment
-  2. Only top TOP_POSTS_FOR_LLM posts are eligible for Gemini
-  3. Post content is truncated to MAX_CHARS_FOR_LLM before the Gemini call
+  1. Prefer cleaner source types for optional LLM enrichment
+  2. Only top TOP_POSTS_FOR_LLM posts are eligible for OpenRouter
+  3. Post content is truncated to MAX_CHARS_FOR_LLM before the LLM call
   4. Minimal JSON prompt is used
-  5. 5-second delay between Gemini calls to respect free-tier rate limits
+  5. 5-second delay between OpenRouter calls to respect free-tier rate limits
   6. All other posts fall back to fast rule-based enrichment
 """
 import json
@@ -17,33 +17,24 @@ from bs4 import BeautifulSoup
 import dateparser
 
 from config import (
-    GEMINI_API_KEY, GEMINI_MODEL,
+    OPENROUTER_API_KEY, OPENROUTER_MODELS,
+    OPENROUTER_SITE_URL, OPENROUTER_APP_NAME,
     TOP_POSTS_FOR_LLM, MAX_CHARS_FOR_LLM,
     EVENT_NORMALIZATION_MAPPINGS,
 )
 
-# ── Gemini client (optional) ────────────────────────────────────────────────────
-try:
-    from google import genai
-    from google.genai import types as genai_types
-    _client = (
-        genai.Client(api_key=GEMINI_API_KEY)
-        if GEMINI_API_KEY and GEMINI_API_KEY not in ("", "your_gemini_api_key_here")
-        else None
-    )
-except Exception:
-    _client = None
-    genai_types = None
+# ── OpenRouter client (optional) ─────────────────────────────────────────────────
+OPENROUTER_CHAT_COMPLETIONS_URL = "https://openrouter.ai/api/v1/chat/completions"
 
-# Fail-fast quota flag: set to True on first 429 / RESOURCE_EXHAUSTED error.
+# Fail-fast availability flag: set to True on missing credentials/auth failures.
 # All subsequent posts in the same run immediately fall back to rule-based.
-_gemini_quota_exhausted: bool = False
+_openrouter_unavailable: bool = False
 
 # ── Constants ────────────────────────────────────────────────────────────────────
 EVENT_TYPES = ["Conference", "Summit", "Webinar", "Workshop", "Meetup", "Other"]
 
-# ── Minimal Gemini prompt (keeps token usage extremely low) ──────────────────────
-_GEMINI_PROMPT = """\
+# ── Minimal LLM prompt (keeps token usage extremely low) ─────────────────────────
+_LLM_PROMPT = """\
 Extract event intelligence from this search result or post in India's financial sector.
 Return ONLY valid JSON, no markdown. Never hallucinate missing information.
 Use "Not specified" for missing fields.
@@ -63,50 +54,101 @@ CONTENT:
 {content}"""
 
 
-# ── Gemini enrichment ────────────────────────────────────────────────────────────
+# ── OpenRouter enrichment ────────────────────────────────────────────────────────
 
-def _gemini_enrich(content: str) -> dict | None:
-    """Call Gemini with a truncated post and minimal prompt. Returns None on failure."""
-    global _gemini_quota_exhausted
+def _extract_json_object(text: str) -> dict | None:
+    """Parse a JSON object from a model response."""
+    text = text.strip()
+    text = re.sub(r"^```json\s*", "", text)
+    text = re.sub(r"^```\s*", "", text)
+    text = re.sub(r"```$", "", text).strip()
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        match = re.search(r"\{.*\}", text, re.DOTALL)
+        if not match:
+            return None
+        try:
+            return json.loads(match.group(0))
+        except json.JSONDecodeError:
+            return None
 
-    if not _client or _gemini_quota_exhausted:
+
+def _openrouter_headers() -> dict:
+    headers = {
+        "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+        "Content-Type": "application/json",
+    }
+    if OPENROUTER_SITE_URL:
+        headers["HTTP-Referer"] = OPENROUTER_SITE_URL
+    if OPENROUTER_APP_NAME:
+        headers["X-Title"] = OPENROUTER_APP_NAME
+    return headers
+
+
+def _openrouter_enrich(content: str) -> dict | None:
+    """Call OpenRouter with a truncated post and fallback model chain."""
+    global _openrouter_unavailable
+
+    if (
+        not OPENROUTER_API_KEY
+        or OPENROUTER_API_KEY in ("", "your_openrouter_api_key_here")
+        or _openrouter_unavailable
+    ):
         return None
 
     clean_text = content[:MAX_CHARS_FOR_LLM]
-    prompt = _GEMINI_PROMPT.format(
+    prompt = _LLM_PROMPT.format(
         event_types=", ".join(EVENT_TYPES),
         content=clean_text,
     )
-    try:
-        response = _client.models.generate_content(
-            model=GEMINI_MODEL,
-            contents=prompt,
-            config=genai_types.GenerateContentConfig(temperature=0.1),
-        )
-        text = response.text.strip()
-        # Strip code fences if present
-        text = re.sub(r"^```json\s*", "", text)
-        text = re.sub(r"```$", "", text).strip()
-        data = json.loads(text)
-        # Validate expected keys
-        required = {"event_name", "event_type", "event_dates", "location", "organiser", "description"}
-        if required.issubset(data.keys()):
-            return data
-    except Exception as e:
-        err = str(e)
-        # Detect hard quota signals and fail-fast for the rest of this run
-        quota_signals = (
-            "429", "RESOURCE_EXHAUSTED", "daily quota",
-            "request limit 0", "input token limit 0",
-        )
-        if any(sig in err for sig in quota_signals):
-            _gemini_quota_exhausted = True
-            print(
-                "[Enricher] Gemini unavailable: quota exhausted. "
-                "Falling back to rule-based enrichment for remaining posts."
+    headers = _openrouter_headers()
+    required = {"event_name", "event_type", "event_dates", "location", "organiser", "description"}
+
+    for model in OPENROUTER_MODELS:
+        payload = {
+            "model": model,
+            "messages": [
+                {
+                    "role": "system",
+                    "content": "You extract structured event data and return only valid JSON.",
+                },
+                {"role": "user", "content": prompt},
+            ],
+            "temperature": 0.1,
+            "max_tokens": 500,
+        }
+        try:
+            response = requests.post(
+                OPENROUTER_CHAT_COMPLETIONS_URL,
+                headers=headers,
+                json=payload,
+                timeout=30,
             )
-        else:
-            print(f"  [Enricher] Gemini failed: {e}")
+            if response.status_code in (401, 403):
+                _openrouter_unavailable = True
+                print("[Enricher] OpenRouter auth failed. Falling back to rule-based enrichment.")
+                return None
+            if response.status_code == 429:
+                print(f"  [Enricher] OpenRouter model rate-limited, trying next: {model}")
+                continue
+            if response.status_code >= 500:
+                print(f"  [Enricher] OpenRouter model unavailable, trying next: {model}")
+                continue
+
+            response.raise_for_status()
+            body = response.json()
+            text = body["choices"][0]["message"]["content"]
+            data = _extract_json_object(text)
+            if data and required.issubset(data.keys()):
+                return data
+            print(f"  [Enricher] OpenRouter returned invalid JSON, trying next: {model}")
+        except requests.RequestException as e:
+            print(f"  [Enricher] OpenRouter request failed for {model}: {e}")
+        except (KeyError, IndexError, TypeError, ValueError) as e:
+            print(f"  [Enricher] OpenRouter response parse failed for {model}: {e}")
+
+    print("[Enricher] OpenRouter models failed. Falling back to rule-based enrichment.")
     return None
 
 
@@ -206,7 +248,7 @@ def normalize_location(text: str) -> str:
       - NEVER returns arbitrary freeform text.
 
     Do NOT pass full post bodies here — only pass a field that is already
-    expected to contain a location (e.g. Gemini's ``location`` output).
+    expected to contain a location (e.g. the LLM ``location`` output).
     """
     if not text or text.strip().lower() in ("", "not specified"):
         return "Not specified"
@@ -280,22 +322,22 @@ def _rule_based_enrich(content: str) -> dict:
 
 # ── Public API ───────────────────────────────────────────────────────────────────
 
-def enrich_post(post: dict, use_gemini: bool = False) -> dict:
+def enrich_post(post: dict, use_openrouter: bool = False) -> dict:
     """
     Enrich a single post.
-    If use_gemini=True, attempt Gemini first; fall back to rule-based on failure.
-    If use_gemini=False, use rule-based only (no API call).
+    If use_openrouter=True, attempt OpenRouter first; fall back to rule-based on failure.
+    If use_openrouter=False, use rule-based only (no API call).
     """
     content = post.get("content", "")
-    gemini_data = None
-    if use_gemini:
-        gemini_data = _gemini_enrich(content)
+    llm_data = None
+    if use_openrouter:
+        llm_data = _openrouter_enrich(content)
 
-    gemini_succeeded = gemini_data is not None
+    llm_succeeded = llm_data is not None
 
-    if gemini_succeeded:
-        data = gemini_data
-        # Normalize Gemini output
+    if llm_succeeded:
+        data = llm_data
+        # Normalize LLM output
         data["event_type"] = normalize_event_type(data.get("event_type", ""))
         data["location"] = normalize_location(data.get("location", ""))
         if data.get("event_dates") and data.get("event_dates") != "Not specified":
@@ -320,7 +362,7 @@ def enrich_post(post: dict, use_gemini: bool = False) -> dict:
     # Stamp enrichment method into the pipeline trace
     trace = enriched_post.get("pipeline_trace")
     if isinstance(trace, dict):
-        trace["enrichment_method"] = "gemini" if gemini_succeeded else "rule-based"
+        trace["enrichment_method"] = "openrouter" if llm_succeeded else "rule-based"
 
     return enriched_post
 
@@ -329,13 +371,13 @@ def enrich_batch(posts: list[dict]) -> list[dict]:
     """
     Token-optimised batch enrichment:
       1. Sort by source preference.
-      2. Top TOP_POSTS_FOR_LLM posts go to Gemini with a 5-second delay.
+      2. Top TOP_POSTS_FOR_LLM posts go to OpenRouter with a 5-second delay.
       3. All remaining posts are rule-based only.
-      4. If Gemini returns a quota error on any call, _gemini_quota_exhausted is
+      4. If OpenRouter auth fails, _openrouter_unavailable is
          set to True and ALL remaining posts in this run fall back immediately
          without sleeping.
     """
-    global _gemini_quota_exhausted
+    global _openrouter_unavailable
 
     if not posts:
         return []
@@ -351,35 +393,35 @@ def enrich_batch(posts: list[dict]) -> list[dict]:
         "open_web_discovery": 7,
     }
     sorted_posts = sorted(posts, key=lambda p: source_rank.get(p.get("source_type"), 9))
-    gemini_candidates = sorted_posts[:TOP_POSTS_FOR_LLM]
+    openrouter_candidates = sorted_posts[:TOP_POSTS_FOR_LLM]
 
-    gemini_ids = {p["id"] for p in gemini_candidates}
+    openrouter_ids = {p["id"] for p in openrouter_candidates}
 
-    gemini_count  = len(gemini_candidates)
-    fallback_count = len(posts) - gemini_count
+    openrouter_count = len(openrouter_candidates)
+    fallback_count = len(posts) - openrouter_count
 
-    print(f"[Enricher] {gemini_count} posts → Gemini  |  {fallback_count} posts → rule-based")
+    print(f"[Enricher] {openrouter_count} posts → OpenRouter  |  {fallback_count} posts → rule-based")
     enriched: list[dict] = []
-    gemini_call_n = 0
+    openrouter_call_n = 0
 
     for post in sorted_posts:
-        use_gemini = post["id"] in gemini_ids and not _gemini_quota_exhausted
+        use_openrouter = post["id"] in openrouter_ids and not _openrouter_unavailable
 
         try:
             name = post.get("author_name", "Unknown")
-            tag  = "Gemini" if use_gemini else "rule"
+            tag  = "OpenRouter" if use_openrouter else "rule"
             source_type = post.get("source_type", "unknown")
             print(f"  [Enricher] [{tag}] source={source_type}  {name}")
         except UnicodeEncodeError:
-            print(f"  [Enricher] [{'Gemini' if use_gemini else 'rule'}] [Non-ASCII Name]")
+            print(f"  [Enricher] [{'OpenRouter' if use_openrouter else 'rule'}] [Non-ASCII Name]")
 
-        if use_gemini:
-            gemini_call_n += 1
-            if gemini_call_n > 1 and not _gemini_quota_exhausted:
-                # Rate-limit: 5-second pause between Gemini calls
+        if use_openrouter:
+            openrouter_call_n += 1
+            if openrouter_call_n > 1 and not _openrouter_unavailable:
+                # Rate-limit: 5-second pause between OpenRouter calls
                 print(f"  [Enricher] Sleeping 5s (rate limit)...")
                 time.sleep(5)
 
-        enriched.append(enrich_post(post, use_gemini=use_gemini))
+        enriched.append(enrich_post(post, use_openrouter=use_openrouter))
 
     return enriched

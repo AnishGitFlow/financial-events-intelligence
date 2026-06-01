@@ -15,8 +15,21 @@ except ImportError:
 
 # --- API keys ---
 SERPER_API_KEY = os.getenv("SERPER_API_KEY", "")
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
-GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.0-flash-lite")
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
+OPENROUTER_SITE_URL = os.getenv("OPENROUTER_SITE_URL", "")
+OPENROUTER_APP_NAME = os.getenv("OPENROUTER_APP_NAME", "Financial Events Pipeline")
+OPENROUTER_MODELS = [
+    model.strip()
+    for model in os.getenv(
+        "OPENROUTER_MODELS",
+        "openai/gpt-oss-120b:free,"
+        "deepseek/deepseek-v4-flash:free,"
+        "z-ai/glm-4.5-air:free,"
+        "mistralai/mistral-7b-instruct:free,"
+        "meta-llama/llama-3-8b-instruct:free",
+    ).split(",")
+    if model.strip()
+]
 
 # --- Email delivery ---
 SMTP_HOST = os.getenv("SMTP_HOST", "smtp.office365.com")
@@ -38,7 +51,7 @@ SERPER_TBS_BY_RECENCY = {
     "month": "qdr:m",
 }
 
-# --- Gemini limits ---
+# --- LLM enrichment limits ---
 TOP_POSTS_FOR_LLM = 5
 MAX_CHARS_FOR_LLM = 700
 

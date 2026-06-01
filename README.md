@@ -6,7 +6,7 @@ The **Financial Services Event Intelligence Monitor** is an automated intelligen
 **Key Features:**
 - **Automated Discovery:** Queries Google Search (via Serper API) daily to find relevant LinkedIn posts about financial events published in the last 24 hours.
 - **Intelligent Deduplication:** Maintains a local history to ensure you never receive the same event twice. Events are deduplicated by event name, dates, and type, preserving the most complete version.
-- **AI-Powered Enrichment:** Leverages Google Gemini to automatically extract structured event intelligence (Name, Dates, Location, Organiser, Audience, Link). Includes a robust heuristic/regex-based fallback layer.
+- **AI-Powered Enrichment:** Leverages OpenRouter to automatically extract structured event intelligence (Name, Dates, Location, Organiser, Audience, Link). Includes a robust heuristic/regex-based fallback layer.
 - **Premium Reporting:** Generates a visually appealing, responsive HTML "Event Intelligence Dashboard" email detailing the daily upcoming events grouped by category.
 - **Cloud-Ready:** Designed to run seamlessly as a scheduled GitHub Action.
 
@@ -19,7 +19,7 @@ Professionals in AMC, AIF, PMS, Wealth Management, and FinTech who need a curate
 The system follows a linear, modular **Extract, Transform, Load (ETL)** pipeline pattern, now heavily focused on treating *events* as the primary entity.
 
 1. **Fetch (`scraper.py`)**: Uses Serper API to query Google for recent LinkedIn posts matching specific event and BFSI keywords. Applies semantic filtering to keep high-signal posts.
-2. **Enrich (`enricher.py`)**: Passes the raw text to Google Gemini for structural event extraction, or falls back to rule-based regex to pull event details. Normalizes dates, locations, and extracts external registration links.
+2. **Enrich (`enricher.py`)**: Passes the raw text to OpenRouter for structural event extraction, or falls back to rule-based regex to pull event details. Normalizes dates, locations, and extracts external registration links.
 3. **Deduplicate (`deduplicator.py`)**: Checks the extracted event entities against a persistent JSON database. If an event is already known, it updates the record if the new post provides a *more complete* payload.
 4. **Report (`reporter.py`)**: Compiles the enriched, unique event data into an HTML template, categorized by event type, and dispatches it via SMTP.
 5. **Orchestrate (`main.py`)**: Ties the modules together and manages execution flow.
@@ -52,7 +52,7 @@ The system follows a linear, modular **Extract, Transform, Load (ETL)** pipeline
 ### Prerequisites
 - Python 3.10+
 - A [Serper API](https://serper.dev/) Account
-- A [Google AI Studio](https://aistudio.google.com/) Account (for Gemini API)
+- An [OpenRouter](https://openrouter.ai/) API key
 - A Gmail Account with an "App Password"
 
 ### Step-by-Step Setup
@@ -71,8 +71,8 @@ The system follows a linear, modular **Extract, Transform, Load (ETL)** pipeline
    Create a `.env` file in the root directory:
    ```env
    SERPER_API_KEY=your_serper_key_here
-   GEMINI_API_KEY=your_gemini_key_here
-   GEMINI_MODEL=gemini-2.0-flash-lite
+   OPENROUTER_API_KEY=your_openrouter_key_here
+   OPENROUTER_MODELS=openai/gpt-oss-120b:free,deepseek/deepseek-v4-flash:free,z-ai/glm-4.5-air:free,mistralai/mistral-7b-instruct:free,meta-llama/llama-3-8b-instruct:free
    SMTP_HOST=smtp.gmail.com
    SMTP_PORT=587
    SMTP_USER=your_email@gmail.com
