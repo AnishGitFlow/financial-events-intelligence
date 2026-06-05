@@ -1,73 +1,5 @@
 {
   "events": {
-    "world expo | summit | awards 2026 - www.bfsibharat.com|2026-05-07": {
-      "completeness": 11.0,
-      "seen_at": "2026-05-06T05:44:01.367053+00:00"
-    },
-    "tech india summit|2026-05-09": {
-      "completeness": 8.0,
-      "seen_at": "2026-05-06T05:44:01.367053+00:00"
-    },
-    "city\nglobal family office investment summit|not specified": {
-      "completeness": 7.0,
-      "seen_at": "2026-05-06T05:44:01.367053+00:00"
-    },
-    "linkedin|2026-05-19": {
-      "completeness": 8.56,
-      "seen_at": "2026-05-06T05:44:01.367053+00:00"
-    },
-    "international conference|2026-04-25": {
-      "completeness": 8.0,
-      "seen_at": "2026-05-06T05:44:01.367053+00:00"
-    },
-    "linkedin|2026-05-12": {
-      "completeness": 8.56,
-      "seen_at": "2026-05-06T05:44:01.367053+00:00"
-    },
-    "about - aws financial services symposium new york 2026|2026-05-07": {
-      "completeness": 9.79,
-      "seen_at": "2026-05-06T05:44:01.367053+00:00"
-    },
-    "our second year of deep dives, tactical workshops, and the conversations that will shape the next decade of software|not specified": {
-      "completeness": 6.779999999999999,
-      "seen_at": "2026-05-06T05:44:01.367053+00:00"
-    },
-    "linkedin|maria 01": {
-      "completeness": 8.56,
-      "seen_at": "2026-05-06T05:44:01.367053+00:00"
-    },
-    "the key highlights:|2026-05-04": {
-      "completeness": 8.0,
-      "seen_at": "2026-05-06T05:44:01.367053+00:00"
-    },
-    "linkedin|2026-07-09": {
-      "completeness": 8.56,
-      "seen_at": "2026-05-06T05:44:01.367053+00:00"
-    },
-    "the conversations were very insightful.|2026-05-19": {
-      "completeness": 7.96,
-      "seen_at": "2026-05-06T05:44:01.367053+00:00"
-    },
-    "thank you for entrusting us with your capital and your confidence.|not specified": {
-      "completeness": 7.0,
-      "seen_at": "2026-05-06T05:44:01.367053+00:00"
-    },
-    "if you're navigating ai inside your firm right now, this one's worth your time.|2026-05-19": {
-      "completeness": 8.0,
-      "seen_at": "2026-05-06T05:44:01.367053+00:00"
-    },
-    "#nircoficai|not specified": {
-      "completeness": 7.0,
-      "seen_at": "2026-05-06T05:44:01.367053+00:00"
-    },
-    "prudent learning conclave|not specified": {
-      "completeness": 6.1899999999999995,
-      "seen_at": "2026-05-06T05:44:01.367053+00:00"
-    },
-    "linkedin|2026-05-17": {
-      "completeness": 8.56,
-      "seen_at": "2026-05-06T05:44:01.367053+00:00"
-    },
     "promoter capital investment summit|2026-05-08": {
       "completeness": 8.0,
       "seen_at": "2026-05-07T05:47:03.354692+00:00"
@@ -1003,6 +935,22 @@
     "now markets summit|2026-06-12": {
       "completeness": 10.14,
       "seen_at": "2026-06-04T07:00:13.200100+00:00"
+    },
+    "indian family office summit|not specified": {
+      "completeness": 6.0,
+      "seen_at": "2026-06-05T06:48:36.400315+00:00"
+    },
+    "linkedin|2026-06-18": {
+      "completeness": 8.56,
+      "seen_at": "2026-06-05T06:48:36.400315+00:00"
+    },
+    "the aafm® 15th mega wealth management convention on dec 16th and 17th, 2023, at the lalit, mumbai|2026-12-16": {
+      "completeness": 10.39,
+      "seen_at": "2026-06-05T06:48:36.400315+00:00"
+    },
+    "citi india conference|not specified": {
+      "completeness": 7.91,
+      "seen_at": "2026-06-05T06:48:36.400315+00:00"
     }
   }
 }
