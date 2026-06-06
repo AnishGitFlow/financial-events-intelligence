@@ -1,69 +1,5 @@
 {
   "events": {
-    "promoter capital investment summit|2026-05-08": {
-      "completeness": 8.0,
-      "seen_at": "2026-05-07T05:47:03.354692+00:00"
-    },
-    "world fintech summit|not specified": {
-      "completeness": 7.0,
-      "seen_at": "2026-05-07T05:47:03.354692+00:00"
-    },
-    "risk summit|not specified": {
-      "completeness": 7.0,
-      "seen_at": "2026-05-07T05:47:03.354692+00:00"
-    },
-    "wealth summit|not specified": {
-      "completeness": 7.0,
-      "seen_at": "2026-05-07T05:47:03.354692+00:00"
-    },
-    "linkedin|2026-05-09": {
-      "completeness": 8.56,
-      "seen_at": "2026-05-07T05:47:03.354692+00:00"
-    },
-    "fintech revolution summit|not specified": {
-      "completeness": 7.0,
-      "seen_at": "2026-05-07T05:47:03.354692+00:00"
-    },
-    "thank you to everyone who joined us.|not specified": {
-      "completeness": 7.0,
-      "seen_at": "2026-05-07T05:47:03.354692+00:00"
-    },
-    "sebi's social media rules came into force on may 1st.|2026-05-01": {
-      "completeness": 7.12,
-      "seen_at": "2026-05-07T05:47:03.354692+00:00"
-    },
-    "linkedin|2026-06-13": {
-      "completeness": 8.56,
-      "seen_at": "2026-05-07T05:47:03.354692+00:00"
-    },
-    "𝟐𝐧𝐝 𝐖𝐨𝐫𝐥𝐝 𝐅𝐢𝐧𝐭𝐞𝐜𝐡 𝐒𝐮𝐦𝐦𝐢𝐭 𝟐𝟎𝟐𝟔, 𝐏𝐫𝐞𝐬𝐞𝐧𝐭𝐞𝐝 𝐛𝐲 𝐒𝐢𝐧𝐜𝐡.|not specified": {
-      "completeness": 7.0,
-      "seen_at": "2026-05-07T05:47:03.354692+00:00"
-    },
-    "hsbc global research|not specified": {
-      "completeness": 10.0,
-      "seen_at": "2026-05-07T05:47:03.354692+00:00"
-    },
-    "feels good to continue the journey and remain top of the leaderboard.|not specified": {
-      "completeness": 6.34,
-      "seen_at": "2026-05-07T05:47:03.354692+00:00"
-    },
-    "𝗪𝗶𝗹𝗹 𝗔𝗜 𝗿𝗲𝗽𝗹𝗮𝗰𝗲 𝗰𝗼𝗻𝘀𝘂𝗹𝘁𝗶𝗻𝗴 𝘄𝗼𝗿𝗸?|not specified": {
-      "completeness": 5.26,
-      "seen_at": "2026-05-07T05:47:03.354692+00:00"
-    },
-    "#agile26 #axxesseverywhere #home #care #growth #innovation #leadership axxess|2026-05-03": {
-      "completeness": 8.0,
-      "seen_at": "2026-05-07T05:47:03.354692+00:00"
-    },
-    "if you work in finance, this week was about you.|not specified": {
-      "completeness": 6.01,
-      "seen_at": "2026-05-07T05:47:03.354692+00:00"
-    },
-    "linkedin|2026-05-11": {
-      "completeness": 8.56,
-      "seen_at": "2026-05-07T05:47:03.354692+00:00"
-    },
     "financial products distribution summit|2026-05-13": {
       "completeness": 8.0,
       "seen_at": "2026-05-08T05:17:51.123416+00:00"
@@ -951,6 +887,14 @@
     "citi india conference|not specified": {
       "completeness": 7.91,
       "seen_at": "2026-06-05T06:48:36.400315+00:00"
+    },
+    "climate action summit|not specified": {
+      "completeness": 6.0,
+      "seen_at": "2026-06-06T06:07:22.414027+00:00"
+    },
+    "world environment day summit|not specified": {
+      "completeness": 6.0,
+      "seen_at": "2026-06-06T06:07:22.414027+00:00"
     }
   }
 }
