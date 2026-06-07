@@ -1,49 +1,5 @@
 {
   "events": {
-    "financial products distribution summit|2026-05-13": {
-      "completeness": 8.0,
-      "seen_at": "2026-05-08T05:17:51.123416+00:00"
-    },
-    "the india investor festival will host a special 'stock picker hall'|not specified": {
-      "completeness": 7.0,
-      "seen_at": "2026-05-08T05:17:51.123416+00:00"
-    },
-    "private wealth management conference|not specified": {
-      "completeness": 10.0,
-      "seen_at": "2026-05-08T05:17:51.123416+00:00"
-    },
-    "this timely conversation on the future of wealth management in the age of ai|not specified": {
-      "completeness": 10.0,
-      "seen_at": "2026-05-08T05:17:51.123416+00:00"
-    },
-    "africa forum summit|not specified": {
-      "completeness": 7.0,
-      "seen_at": "2026-05-08T05:17:51.123416+00:00"
-    },
-    "linkedin login, sign in | linkedin|2026-05-21": {
-      "completeness": 8.92,
-      "seen_at": "2026-05-08T05:17:51.123416+00:00"
-    },
-    "clean power finance summit|2026-05-05": {
-      "completeness": 8.0,
-      "seen_at": "2026-05-08T05:17:51.123416+00:00"
-    },
-    "linkedin|2026-06-25": {
-      "completeness": 8.56,
-      "seen_at": "2026-05-08T05:17:51.123416+00:00"
-    },
-    "linkedin|2026-05-28": {
-      "completeness": 8.56,
-      "seen_at": "2026-05-08T05:17:51.123416+00:00"
-    },
-    "adjunct faculty session in financial market & services course:|2026-05-07": {
-      "completeness": 8.0,
-      "seen_at": "2026-05-08T05:17:51.123416+00:00"
-    },
-    "#bricsindia2026  #brics2026 #sustainablefinance|2026-04-22": {
-      "completeness": 8.0,
-      "seen_at": "2026-05-08T05:17:51.123416+00:00"
-    },
     "financial products distribution summit|not specified": {
       "completeness": 6.16,
       "seen_at": "2026-05-09T05:36:20.908744+00:00"
@@ -895,6 +851,14 @@
     "world environment day summit|not specified": {
       "completeness": 6.0,
       "seen_at": "2026-06-06T06:07:22.414027+00:00"
+    },
+    "“building a successful online sif distribution platform”|not specified": {
+      "completeness": 7.0,
+      "seen_at": "2026-06-07T06:47:41.134734+00:00"
+    },
+    "growth summit|not specified": {
+      "completeness": 7.0,
+      "seen_at": "2026-06-07T06:47:41.134734+00:00"
     }
   }
 }
