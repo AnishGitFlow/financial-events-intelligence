@@ -1,49 +1,5 @@
 {
   "events": {
-    "financial products distribution summit|not specified": {
-      "completeness": 6.16,
-      "seen_at": "2026-05-09T05:36:20.908744+00:00"
-    },
-    "upcoming events | cfa institute|2026-05-12": {
-      "completeness": 9.98,
-      "seen_at": "2026-05-09T05:36:20.908744+00:00"
-    },
-    "at bfsi bharat + fintech world expo | summit | awards 2026|not specified": {
-      "completeness": 7.0,
-      "seen_at": "2026-05-09T05:36:20.908744+00:00"
-    },
-    "banking transformation summit|2026-05-20": {
-      "completeness": 11.0,
-      "seen_at": "2026-05-09T05:36:20.908744+00:00"
-    },
-    "tech networking meetup|not specified": {
-      "completeness": 7.0,
-      "seen_at": "2026-05-09T05:36:20.908744+00:00"
-    },
-    "all india urban cooperative banking summit|not specified": {
-      "completeness": 7.0,
-      "seen_at": "2026-05-09T05:36:20.908744+00:00"
-    },
-    "today was immensely special.|not specified": {
-      "completeness": 6.84,
-      "seen_at": "2026-05-09T05:36:20.908744+00:00"
-    },
-    "investment summit|not specified": {
-      "completeness": 7.0,
-      "seen_at": "2026-05-09T05:36:20.908744+00:00"
-    },
-    "𝟐𝐧𝐝 𝐖𝐨𝐫𝐥𝐝 𝐅𝐢𝐧𝐭𝐞𝐜𝐡 𝐒𝐮𝐦𝐦𝐢𝐭 𝟐𝟎𝟐𝟔, 𝐏𝐫𝐞𝐬𝐞𝐧𝐭𝐞𝐝 𝐛𝐲 𝐒𝐢𝐧𝐜𝐡|not specified": {
-      "completeness": 7.0,
-      "seen_at": "2026-05-09T05:36:20.908744+00:00"
-    },
-    "an exciting evening of discussions around kubernetes and cloud native technologies|not specified": {
-      "completeness": 7.0,
-      "seen_at": "2026-05-09T05:36:20.908744+00:00"
-    },
-    "for those looking to hear more or engage further:|not specified": {
-      "completeness": 7.0,
-      "seen_at": "2026-05-09T05:36:20.908744+00:00"
-    },
     "🎙️ moderator appreciation | the cfo vault – summit & awards 2026|2026-05-07": {
       "completeness": 8.0,
       "seen_at": "2026-05-10T05:50:07.552845+00:00"
@@ -249,8 +205,8 @@
       "seen_at": "2026-05-16T05:41:34.308229+00:00"
     },
     "finance summit|not specified": {
-      "completeness": 7.0,
-      "seen_at": "2026-05-16T05:41:34.308229+00:00"
+      "completeness": 8.2,
+      "seen_at": "2026-06-08T07:12:33.465386+00:00"
     },
     "a productive panel discussion at rosewood, adgm!|not specified": {
       "completeness": 7.0,
@@ -859,6 +815,10 @@
     "growth summit|not specified": {
       "completeness": 7.0,
       "seen_at": "2026-06-07T06:47:41.134734+00:00"
+    },
+    "#balancedlife #familyfirstalways #spiritualgrowth|not specified": {
+      "completeness": 6.0,
+      "seen_at": "2026-06-08T07:12:33.465386+00:00"
     }
   }
 }
