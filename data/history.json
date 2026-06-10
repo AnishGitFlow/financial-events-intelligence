@@ -1,57 +1,5 @@
 {
   "events": {
-    "linkedin|2026-06-10": {
-      "completeness": 8.56,
-      "seen_at": "2026-05-11T06:14:21.072191+00:00"
-    },
-    "business global summit|not specified": {
-      "completeness": 7.0,
-      "seen_at": "2026-05-11T06:14:21.072191+00:00"
-    },
-    "family office investment summit|not specified": {
-      "completeness": 7.0,
-      "seen_at": "2026-05-11T06:14:21.072191+00:00"
-    },
-    "os workshop|not specified": {
-      "completeness": 7.0,
-      "seen_at": "2026-05-11T06:14:21.072191+00:00"
-    },
-    "the alternative investment management association digital asset conference|not specified": {
-      "completeness": 7.0,
-      "seen_at": "2026-05-11T06:14:21.072191+00:00"
-    },
-    "family office summit|not specified": {
-      "completeness": 7.0,
-      "seen_at": "2026-05-11T06:14:21.072191+00:00"
-    },
-    "financial literacy is not just about numbers, sips, or returns.|not specified": {
-      "completeness": 7.0,
-      "seen_at": "2026-05-11T06:14:21.072191+00:00"
-    },
-    "🇸🇬 singapore: ahrefs evolve (may 14)|2026-04-30": {
-      "completeness": 7.17,
-      "seen_at": "2026-05-11T06:14:21.072191+00:00"
-    },
-    "#investmentbanking #iimb  | 23 comments on linkedin|not specified": {
-      "completeness": 7.0,
-      "seen_at": "2026-05-11T06:14:21.072191+00:00"
-    },
-    "“india seekhega, india badhega.”|not specified": {
-      "completeness": 7.0,
-      "seen_at": "2026-05-11T06:14:21.072191+00:00"
-    },
-    "impex meetup|not specified": {
-      "completeness": 7.0,
-      "seen_at": "2026-05-11T06:14:21.072191+00:00"
-    },
-    "key observations from the festival include:|not specified": {
-      "completeness": 7.0,
-      "seen_at": "2026-05-11T06:14:21.072191+00:00"
-    },
-    "some moments you just don't see coming.|not specified": {
-      "completeness": 7.0,
-      "seen_at": "2026-05-11T06:14:21.072191+00:00"
-    },
     "bangalore summit|2026-05-16": {
       "completeness": 8.0,
       "seen_at": "2026-05-12T05:53:20.372827+00:00"
@@ -807,6 +755,22 @@
     "financial literacy public workshop|2026-06-05": {
       "completeness": 9.120000000000001,
       "seen_at": "2026-06-09T06:31:37.081796+00:00"
+    },
+    "united nations summit|not specified": {
+      "completeness": 6.0,
+      "seen_at": "2026-06-10T06:48:07.950332+00:00"
+    },
+    "🗣️ “commanding capital: winning when liquidity is tight & trust is tighter”|2026-06-05": {
+      "completeness": 8.0,
+      "seen_at": "2026-06-10T06:48:07.950332+00:00"
+    },
+    "markets summit|2026-01-10": {
+      "completeness": 10.24,
+      "seen_at": "2026-06-10T06:48:07.950332+00:00"
+    },
+    "zee business wealth creation summit|2025-04-01": {
+      "completeness": 9.34,
+      "seen_at": "2026-06-10T06:48:07.950332+00:00"
     }
   }
 }
