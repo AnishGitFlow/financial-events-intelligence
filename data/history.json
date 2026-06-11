@@ -1,61 +1,5 @@
 {
   "events": {
-    "bangalore summit|2026-05-16": {
-      "completeness": 8.0,
-      "seen_at": "2026-05-12T05:53:20.372827+00:00"
-    },
-    "am summit|not specified": {
-      "completeness": 7.0,
-      "seen_at": "2026-05-12T05:53:20.372827+00:00"
-    },
-    "asset managers conference|not specified": {
-      "completeness": 7.0,
-      "seen_at": "2026-05-12T05:53:20.372827+00:00"
-    },
-    "madhya pradesh finance summit|not specified": {
-      "completeness": 7.0,
-      "seen_at": "2026-05-12T05:53:20.372827+00:00"
-    },
-    "annual business summit|not specified": {
-      "completeness": 5.48,
-      "seen_at": "2026-05-12T05:53:20.372827+00:00"
-    },
-    "what a week in london!✨|not specified": {
-      "completeness": 7.0,
-      "seen_at": "2026-05-12T05:53:20.372827+00:00"
-    },
-    "𝐌𝐨𝐧𝐚𝐜𝐨 𝐚𝐭 𝐭𝐡𝐞 𝐂𝐞𝐧𝐭𝐞𝐫 𝐨𝐟 𝐈𝐧𝐭𝐞𝐫𝐧𝐚𝐭𝐢𝐨𝐧𝐚𝐥 𝐃𝐢𝐬𝐜𝐮𝐬𝐬𝐢𝐨𝐧𝐬 𝐨𝐧 𝐆𝐥𝐨𝐛𝐚𝐥 𝐅𝐢𝐧𝐚𝐧𝐜𝐞 🇲🇨🌍|not specified": {
-      "completeness": 7.0,
-      "seen_at": "2026-05-12T05:53:20.372827+00:00"
-    },
-    "annual business summit|2026-05-11": {
-      "completeness": 6.07,
-      "seen_at": "2026-05-12T05:53:20.372827+00:00"
-    },
-    "market conference|not specified": {
-      "completeness": 7.0,
-      "seen_at": "2026-05-12T05:53:20.372827+00:00"
-    },
-    "linkedin|2026-06-05": {
-      "completeness": 8.56,
-      "seen_at": "2026-05-12T05:53:20.372827+00:00"
-    },
-    "linkedin|2026-05-27": {
-      "completeness": 8.56,
-      "seen_at": "2026-05-12T05:53:20.372827+00:00"
-    },
-    "miami super summit|2026-05-12": {
-      "completeness": 8.0,
-      "seen_at": "2026-05-12T05:53:20.372827+00:00"
-    },
-    "i'm proud to announce that i've been promoted to partner at lc nueva capital.|not specified": {
-      "completeness": 7.0,
-      "seen_at": "2026-05-12T05:53:20.372827+00:00"
-    },
-    "🔔1) cambria allen ratzlaff interim ceo at pri|not specified": {
-      "completeness": 7.0,
-      "seen_at": "2026-05-12T05:53:20.372827+00:00"
-    },
     "some powerful takeaways from the summit:|2026-05-08": {
       "completeness": 8.0,
       "seen_at": "2026-05-15T06:10:27.875018+00:00"
@@ -749,8 +693,8 @@
       "seen_at": "2026-06-09T06:31:37.081796+00:00"
     },
     "markets summit|not specified": {
-      "completeness": 8.19,
-      "seen_at": "2026-06-09T06:31:37.081796+00:00"
+      "completeness": 8.26,
+      "seen_at": "2026-06-11T07:13:28.912495+00:00"
     },
     "financial literacy public workshop|2026-06-05": {
       "completeness": 9.120000000000001,
@@ -771,6 +715,22 @@
     "zee business wealth creation summit|2025-04-01": {
       "completeness": 9.34,
       "seen_at": "2026-06-10T06:48:07.950332+00:00"
+    },
+    "wealth conclave|2026-06-13": {
+      "completeness": 8.0,
+      "seen_at": "2026-06-11T07:13:28.912495+00:00"
+    },
+    "india summit|not specified": {
+      "completeness": 6.0,
+      "seen_at": "2026-06-11T07:13:28.912495+00:00"
+    },
+    "chennai summit|not specified": {
+      "completeness": 6.3100000000000005,
+      "seen_at": "2026-06-11T07:13:28.912495+00:00"
+    },
+    "now markets summit|not specified": {
+      "completeness": 8.25,
+      "seen_at": "2026-06-11T07:13:28.912495+00:00"
     }
   }
 }
