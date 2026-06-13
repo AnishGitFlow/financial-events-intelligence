@@ -693,8 +693,8 @@
       "seen_at": "2026-06-09T06:31:37.081796+00:00"
     },
     "markets summit|not specified": {
-      "completeness": 8.26,
-      "seen_at": "2026-06-11T07:13:28.912495+00:00"
+      "completeness": 8.32,
+      "seen_at": "2026-06-13T06:36:22.761495+00:00"
     },
     "financial literacy public workshop|2026-06-05": {
       "completeness": 9.120000000000001,
@@ -747,6 +747,14 @@
     "upcoming webinar|2026-06-15": {
       "completeness": 8.48,
       "seen_at": "2026-06-12T07:00:19.516843+00:00"
+    },
+    "surat startup summit|2026-06-14": {
+      "completeness": 7.0,
+      "seen_at": "2026-06-13T06:36:22.761495+00:00"
+    },
+    "communications summit|2026-04-09": {
+      "completeness": 8.5,
+      "seen_at": "2026-06-13T06:36:22.761495+00:00"
     }
   }
 }
